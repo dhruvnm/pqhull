@@ -1,2 +1,2 @@
-# 818x-pqhull
+# pqhull
 Parallel Quickhull 
