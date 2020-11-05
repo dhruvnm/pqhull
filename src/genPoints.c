@@ -1,11 +1,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 
 #include "utils.h"
 
-double randfrom(int min, int max) {
+double randFrom(int min, int max) {
     return min + (rand() / (RAND_MAX / (double)(max - min)));
+}
+
+struct Point randDisk(int maxRadius) {
+    struct Point p;
+    double a, r;
+
+    a = randFrom(0, 1) * 2 * M_PI;
+    r = maxRadius * sqrt(randFrom(0, 1));
+
+    p.x = r * cos(a);
+    p.y = r * sin(a);
+
+    return  p;
 }
 
 int main(int argc, char **argv) {
@@ -27,24 +41,11 @@ int main(int argc, char **argv) {
 
     //Generate random points
     srand(time(NULL));
+    printf("%d\n", arg.radius);
     for (i = 0; i < arg.numPoints; i++) {
-        points[i].x = randfrom(arg.min, arg.max);
-        points[i].y = randfrom(arg.min, arg.max);
+        points[i] = randDisk(arg.radius);
     }
 
     //Save points to file
-    writeFile(arg.outFile, points, arg.numPoints);
-
-    if (arg.debug) {
-        struct Point* points_reloaded;
-        points_reloaded = malloc(arg.numPoints * sizeof(struct Point));
-        loadFile(arg.outFile, points_reloaded, arg.numPoints);
-
-        for (i = 0; i < arg.numPoints; i++) {
-            printPoint(points[i]);
-            printPoint(points_reloaded[i]);
-            printf("\n");
-        }
-
-    }
+    writePointArrayToFile(arg.outFile, points, arg.numPoints);
 }
