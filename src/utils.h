@@ -1,3 +1,6 @@
+#ifndef UTILS_H
+#define UTILS_H
+
 struct Arguments {
     //General arguments
     char* inFile;
@@ -20,7 +23,7 @@ struct Point {
 //Node of a circular doubly linked list
 struct LinkedPoint {
    struct Point point;
-
+   int index;
    struct LinkedPoint* prev;
    struct LinkedPoint* next;
 };
@@ -56,3 +59,5 @@ void parseArgs(int argc, char **argv, struct Arguments* arg);
 
 /******************************************************************************/
 void printPoint(struct Point p);
+
+#endif
