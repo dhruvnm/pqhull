@@ -18,7 +18,9 @@ int main(int argc, char **argv) {
         struct Arguments arg;
         struct Point* points;
         struct LinkedPoint *hull, *P, *Q, *top, *bot;
-        int i, t, b;
+        int i, t, b, *proc_stack, *proc_num, top_proc, bot_proc;
+        p_thread thread_id;
+        struct ProcManagerArgs args;
 
         parseArgs(argc, argv, &arg);
         if (arg.numPoints <= 0) {
@@ -43,6 +45,8 @@ int main(int argc, char **argv) {
             hull[i].prev = NULL;
             hull[i].next = NULL;
         }
+
+        free(points);
 
         // START TIMING 
 
@@ -78,8 +82,42 @@ int main(int argc, char **argv) {
             }
         }
 
+        // Set up process manager
+        proc_num = malloc(sizeof(int));
+        *proc_num = size - 1;
+        proc_stack = malloc(*proc_num * sizeof(int));
+        for (i = 0; i < *proc_num; i++) {
+            proc_stack[i] = i + 1;
+        }
+
+        // Get two process from the stack
+        top_proc = proc_stack[(*proc_num) - 1];
+        bot_proc = proc_stack[(*proc_num) - 2];
+        *proc_num -= 2;
+
+        // Start process manager
+        args.proc_stack = proc_stack;
+        args.proc_num = proc_num;
+        pthread_create(&thread_id, NULL, processManager, &args);
+
+        // Call QuickHull
+        
 
         writePointListToFile(arg.outFile, hull);
-        return 0;
+    } else {
+        // Worker processes
+        LinkedPoint P; // dummy point to pass as an arg
+        quickHull(NULL, 0, P, P, Mode.MESSAGE);
     }
+    return 0;
+}
+
+void processManager(struct ProcManagerArgs *args) {
+    int i, *proc_stack, *proc_num;
+    proc_stack = args->proc_stack;
+    proc_num = args->proc_num;
+
+    
+
+    // MPI stuff
 }
