@@ -1,6 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include "mpi.h"
+
 struct Arguments {
     //General arguments
     char* inFile;
@@ -28,11 +30,21 @@ struct LinkedPoint {
    struct LinkedPoint* next;
 };
 
+//Used in ParallelSearch to reduce over points in which some
 struct PointDistance {
     struct Point point;
     int valid;
     int dist;
 };
+
+/******************************************************************************/
+void define_MPI_POINT(MPI_Datatype* MPI_POINT);
+void define_MPI_POINT_X_MIN(struct Point *in, struct Point *out, int *len, MPI_Datatype *typeptr);
+void define_MPI_POINT_X_MAX(struct Point *in, struct Point *out, int *len, MPI_Datatype *typeptr);
+
+/******************************************************************************/
+void define_MPI_POINT_DISTANCE(MPI_Datatype* MPI_POINT_DISTANCE);
+void define_MPI_POINT_DISTANCE_MAX(struct PointDistance *in, struct PointDistance *out, int *len, MPI_Datatype *typeptr);
 
 /******************************************************************************/
 // Returns the side of point p with respect to line (p1, p2)
@@ -41,6 +53,9 @@ int findSide(struct Point p1, struct Point p2, struct Point p);
 // returns a value proportional to the distance between the point p
 // and the line joining the points p1 and p2
 int lineDist(struct Point p1, struct Point p2, struct Point p);
+
+// Get point either left/bottom most (-1) or right/top most (1)
+struct Point* extremaPoint(struct Point* p1, struct Point* p2, int d);
 
 /******************************************************************************/
 // Insert point p into the linked list before lp

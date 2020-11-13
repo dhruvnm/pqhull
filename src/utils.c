@@ -5,6 +5,104 @@
 #include "utils.h"
 #include "mpi.h"
 
+
+/******************************************************************************/
+void define_MPI_POINT(MPI_Datatype* MPI_POINT){
+    //Collect necessary data for MPI
+    int numFields = 2;
+    int fieldLengths[numFields] = {1,1};
+    MPI_Aint fieldOffsets[numFields];
+    MPI_Datatype fieldTypes[numFields] = {MPI_DOUBLE, MPI_DOUBLE};
+
+    //Fill field offsets with correct values
+    fieldOffsets[0] = offsetof(struct Point, x);
+    fieldOffsets[1] = offsetof(struct Point, y);
+
+    //Submit info to MPI
+    MPI_Type_create_struct(numFields, fieldLengths, fieldOffsets, fieldTypes, MPI_POINT);
+    MPI_Type_commit(MPI_POINT);
+}
+
+void define_MPI_POINT_X_MIN(struct Point *in, struct Point *out, int *len, MPI_Datatype *typeptr){
+    struct Point *pa, *pb;
+    int i = 0;
+
+    pa = (struct Point*) in;
+    pb = (struct Point*) out;
+
+    if (*len != 1){
+        printf("Warning: this function may not work for lengths != 1\n");
+    }
+
+    if(&(pa[i]) == extremaPoint(&(pa[i]), &(pb[i]), -1)){
+        pb[i] = pa[i];
+    }
+}
+
+void define_MPI_POINT_X_MAX(struct Point *in, struct Point *out, int *len, MPI_Datatype *typeptr){
+    struct Point *pa, *pb;
+    int i = 0;
+
+    pa = (struct Point*) in;
+    pb = (struct Point*) out;
+
+    if (*len != 1){
+        printf("Warning: this function may not work for lengths != 1\n");
+    }
+
+    if(&(pa[i]) == extremaPoint(&(pa[i]), &(pb[i]), 1)){
+        pb[i] = pa[i];
+    }
+}
+
+/******************************************************************************/
+void define_MPI_POINT_DISTANCE(MPI_Datatype* MPI_POINT_DISTANCE){
+    //Collect necessary data for MPI
+    int numFields = 4;
+    int fieldLengths[numFields] = {1,1,1,1};
+    MPI_Aint fieldOffsets[numFields];
+    MPI_Datatype fieldTypes[numFields] = {MPI_DOUBLE, MPI_DOUBLE, MPI_INT, MPI_INT};
+
+    //Fill field offsets with correct values
+    fieldOffsets[0] = offsetof(struct PointDistance, point) + offsetof(struct Point, x);
+    fieldOffsets[1] = offsetof(struct PointDistance, point) + offsetof(struct Point, y);
+    fieldOffsets[2] = offsetof(struct PointDistance, valid);
+    fieldOffsets[3] = offsetof(struct PointDistance, dist);
+
+    //Submit info to MPI
+    MPI_Type_create_struct(numFields, fieldLengths, fieldOffsets, fieldTypes, MPI_POINT_DISTANCE);
+    MPI_Type_commit(MPI_POINT_DISTANCE);
+}
+
+void define_MPI_POINT_DISTANCE_MAX(struct PointDistance *in, struct PointDistance *out, int *len, MPI_Datatype *typeptr){
+    struct PointDistance *pda, *pdb;
+    int i = 0;
+
+    pda = (struct PointDistance*) in;
+    pdb = (struct PointDistance*) out;
+
+    if (*len != 1){
+        printf("Warning: this function may not work for lengths != 1\n");
+    }
+    printf("CHECK 10\n");
+    if(pdb[i].valid == 0){
+        pdb[i] = pda[i];
+    } else if (pda[i].valid && pdb[i].valid) {
+        if (pda[i].dist > pdb[i].dist) {
+            pdb[i] = pda[i];
+        } else if (pda[i].dist < pdb[i].dist) {
+            pdb[i] = pdb[i];
+        } else {
+            if(&(pdb[i].point) == extremaPoint(&(pda[i].point), &(pdb[i].point), -1)){
+                pdb[i] = pdb[i];
+            } else {
+                pdb[i] = pda[i];
+            }
+        }
+    }
+    printf("CHECK 20\n");
+}
+
 /******************************************************************************/
 int findSide(struct Point p1, struct Point p2, struct Point p) {
     int v;
@@ -32,6 +130,24 @@ int lineDist(struct Point p1, struct Point p2, struct Point p) {
     }
 }
 
+struct Point* extremaPoint(struct Point* p1, struct Point* p2, int d) {
+    double xDelta, yDelta;
+
+    xDelta = (p1->x - p2->x) * (double) d;
+    yDelta = (p1->y - p2->y) * (double) d;
+
+    if (xDelta == 0) {
+        if (yDelta > 0) {
+            return p1;
+        } else {
+            return p2;
+        }
+    } else if (xDelta > 0) {
+        return p1;
+    } else {
+        return p2;
+    }
+}
 /******************************************************************************/
 struct LinkedPoint* insertBefore(struct LinkedPoint* lp, struct Point p) {
     struct LinkedPoint* newNode;
