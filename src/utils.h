@@ -33,8 +33,8 @@ struct LinkedPoint {
 //Used in ParallelSearch to reduce over points in which some
 struct PointDistance {
     struct Point point;
+    double dist;
     int valid;
-    int dist;
 };
 
 /******************************************************************************/

@@ -95,10 +95,11 @@ int main(int argc, char **argv) {
 
 void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, int side){
     struct PointDistance pd, newPD;
-    int i, dist, sp = -1, maxDist = -1;
+    int i, dist, sp, maxDist = -1;
 
     //Scatter search parameters
     //printf("CHECK 10\n");
+    sp = -1;
     for(i = 0; i < n; i++){
         dist = lineDist(p1, p2, points[i]);
         if (findSide(p1, p2, points[i]) == side && dist > maxDist){
@@ -110,6 +111,7 @@ void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, in
     //printf("CHECK 20\n");
     if (sp == -1) {
         pd.valid = 0;
+        pd.dist = 0;
     } else {
         pd.valid = 1;
         pd.point = points[sp];
@@ -121,11 +123,14 @@ void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, in
 
     //printf("CHECK 40\n");
     if (!newPD.valid) {
-        hull = insertBefore(hull, p1);
-        hull = insertBefore(hull, p2);
+        if (mpiRank == 0) {
+            hull = insertBefore(hull, p1);
+            hull = insertBefore(hull, p2);
+        }
+    } else {
+        quickHull(points, n, newPD.point, p1, -findSide(newPD.point, p1, p2));
+        quickHull(points, n, newPD.point, p2, -findSide(newPD.point, p2, p1));
     }
     //printf("CHECK 50\n");
 
-    quickHull(points, n, points[sp], p1, -findSide(newPD.point, p1, p2));
-    quickHull(points, n, points[sp], p2, -findSide(newPD.point, p1, p2));
 }
