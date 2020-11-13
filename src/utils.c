@@ -3,6 +3,7 @@
 #include <getopt.h>
 
 #include "utils.h"
+#include "mpi.h"
 
 /******************************************************************************/
 int findSide(struct Point p1, struct Point p2, struct Point p) {
@@ -35,7 +36,7 @@ int lineDist(struct Point p1, struct Point p2, struct Point p) {
 struct LinkedPoint* insertBefore(struct LinkedPoint* lp, struct Point p) {
     struct LinkedPoint* newNode;
 
-    newNode = malloc(sizeof(struct LinkedPoint));
+    newNode = (struct LinkedPoint*) malloc(sizeof(struct LinkedPoint));
     newNode->point = p;
     if (lp == NULL) {
         //First element of list
@@ -55,7 +56,7 @@ struct LinkedPoint* insertBefore(struct LinkedPoint* lp, struct Point p) {
 struct LinkedPoint* insertAfter(struct LinkedPoint* lp, struct Point p) {
     struct LinkedPoint* newNode;
 
-    newNode = malloc(sizeof(struct LinkedPoint));
+    newNode = (struct LinkedPoint*) malloc(sizeof(struct LinkedPoint));
     newNode->point = p;
     if (lp == NULL) {
         //First element of list
@@ -182,4 +183,23 @@ void parseArgs(int argc, char **argv, struct Arguments* arg){
 /******************************************************************************/
 void printPoint(struct Point p){
     printf("%10.3lf, %10.3lf\n", p.x, p.y);
+}
+
+void startTime(double* startTime) {
+    *startTime = MPI_Wtime();
+}
+
+void endTime(int rank, int size, double startTime) {
+    double delta, min, avg, max;
+
+    delta = MPI_Wtime() - startTime;
+
+    MPI_Reduce(&delta, &min, 1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&delta, &avg, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    avg /= size;
+    MPI_Reduce(&delta, &max, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+
+    if (rank == 0){
+        printf("TIME: Min: %.6f s Avg: %.6f s Max: %.6f s\n", min, avg, max);
+    }
 }

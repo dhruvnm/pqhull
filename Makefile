@@ -1,4 +1,4 @@
-CC=gcc
+CC=mpicxx
 CFLAGS=-Wall
 DEPS=utils.h utils.c
 PROG=genPoints parallelSearch processPool

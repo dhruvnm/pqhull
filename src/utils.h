@@ -28,6 +28,12 @@ struct LinkedPoint {
    struct LinkedPoint* next;
 };
 
+struct PointDistance {
+    struct Point point;
+    int valid;
+    int dist;
+};
+
 /******************************************************************************/
 // Returns the side of point p with respect to line (p1, p2)
 int findSide(struct Point p1, struct Point p2, struct Point p);
@@ -59,5 +65,11 @@ void parseArgs(int argc, char **argv, struct Arguments* arg);
 
 /******************************************************************************/
 void printPoint(struct Point p);
+
+//Standard function to start MPI timing
+void startTime(double* startTime);
+
+//Standard function to print MPI timing
+void endTime(int rank, int size, double startTime);
 
 #endif

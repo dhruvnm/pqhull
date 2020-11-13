@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    points = malloc(arg.numPoints * sizeof(struct Point));
+    points = (struct Point *) malloc(arg.numPoints * sizeof(struct Point));
 
     //Generate random points
     srand(time(NULL));
