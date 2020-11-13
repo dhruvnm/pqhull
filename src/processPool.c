@@ -6,12 +6,16 @@
 #include "utils.h"
 #include "processPool.h"
 
+MPI_Datatype MPI_LINKED_POINT;
+
 int main(int argc, char **argv) {
     // Initialize MPI
     int rank, size;
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    define_MPI_LINKED_POINT(&MPI_LINKED_POINT);
 
     // Master Process
     if (rank == 0) {
@@ -48,7 +52,7 @@ int main(int argc, char **argv) {
 
         free(points);
 
-        // START TIMING 
+        // START TIMING
 
         // Find the leftmost and rightmost points
         P = &hull[0]; // leftmost
@@ -101,7 +105,7 @@ int main(int argc, char **argv) {
         pthread_create(&thread_id, NULL, processManager, &args);
 
         // Call QuickHull
-        
+
 
         writePointListToFile(arg.outFile, hull);
     } else {
@@ -117,7 +121,7 @@ void processManager(struct ProcManagerArgs *args) {
     proc_stack = args->proc_stack;
     proc_num = args->proc_num;
 
-    
+
 
     // MPI stuff
 }

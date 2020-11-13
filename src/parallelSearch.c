@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
     MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);
 
     define_MPI_POINT(&MPI_POINT);
-    define_MPI_POINT(&MPI_POINT_DISTANCE);
+    define_MPI_POINT_DISTANCE(&MPI_POINT_DISTANCE);
 
     MPI_Op_create((MPI_User_function *) define_MPI_POINT_X_MIN, 1, &MPI_POINT_X_MIN);
     MPI_Op_create((MPI_User_function *) define_MPI_POINT_X_MAX, 1, &MPI_POINT_X_MAX);

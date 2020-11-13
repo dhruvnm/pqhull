@@ -25,9 +25,9 @@ struct Point {
 //Node of a circular doubly linked list
 struct LinkedPoint {
    struct Point point;
-   int index;
    struct LinkedPoint* prev;
    struct LinkedPoint* next;
+   int index;
 };
 
 //Used in ParallelSearch to reduce over points in which some
@@ -41,6 +41,9 @@ struct PointDistance {
 void define_MPI_POINT(MPI_Datatype* MPI_POINT);
 void define_MPI_POINT_X_MIN(struct Point *in, struct Point *out, int *len, MPI_Datatype *typeptr);
 void define_MPI_POINT_X_MAX(struct Point *in, struct Point *out, int *len, MPI_Datatype *typeptr);
+
+/******************************************************************************/
+void define_MPI_LINKED_POINT(MPI_Datatype* MPI_LINKED_POINT);
 
 /******************************************************************************/
 void define_MPI_POINT_DISTANCE(MPI_Datatype* MPI_POINT_DISTANCE);

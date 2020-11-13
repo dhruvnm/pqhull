@@ -56,6 +56,26 @@ void define_MPI_POINT_X_MAX(struct Point *in, struct Point *out, int *len, MPI_D
 }
 
 /******************************************************************************/
+void define_MPI_LINKED_POINT(MPI_Datatype* MPI_LINKED_POINT){
+    //Collect necessary data for MPI
+    int numFields = 5;
+    int fieldLengths[numFields] = {1,1,1,1,1};
+    MPI_Aint fieldOffsets[numFields];
+    MPI_Datatype fieldTypes[numFields] = {MPI_DOUBLE, MPI_DOUBLE, MPI_LONG_LONG, MPI_LONG_LONG, MPI_INT};
+
+    //Fill field offsets with correct values
+    fieldOffsets[0] = offsetof(struct LinkedPoint, point) + offsetof(struct Point, x);
+    fieldOffsets[1] = offsetof(struct LinkedPoint, point) + offsetof(struct Point, y);
+    fieldOffsets[2] = offsetof(struct LinkedPoint, prev);
+    fieldOffsets[3] = offsetof(struct LinkedPoint, next);
+    fieldOffsets[4] = offsetof(struct LinkedPoint, index);
+
+    //Submit info to MPI
+    MPI_Type_create_struct(numFields, fieldLengths, fieldOffsets, fieldTypes, MPI_LINKED_POINT);
+    MPI_Type_commit(MPI_LINKED_POINT);
+}
+
+/******************************************************************************/
 void define_MPI_POINT_DISTANCE(MPI_Datatype* MPI_POINT_DISTANCE){
     //Collect necessary data for MPI
     int numFields = 4;
@@ -148,6 +168,7 @@ struct Point* extremaPoint(struct Point* p1, struct Point* p2, int d) {
         return p2;
     }
 }
+
 /******************************************************************************/
 struct LinkedPoint* insertBefore(struct LinkedPoint* lp, struct Point p) {
     struct LinkedPoint* newNode;
