@@ -41,7 +41,6 @@ int main(int argc, char **argv) {
 
     //Generate random points
     srand(time(NULL));
-    printf("%d\n", arg.radius);
     for (i = 0; i < arg.numPoints; i++) {
         points[i] = randDisk(arg.radius);
     }
