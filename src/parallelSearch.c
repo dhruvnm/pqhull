@@ -14,14 +14,11 @@ MPI_Op MPI_POINT_X_MIN;
 MPI_Op MPI_POINT_X_MAX;
 MPI_Op MPI_POINT_DISTANCE_MAX;
 
-// Process rank & size
+struct Arguments arg;
+struct LinkedPoint* hull = NULL;
 int mpiRank, mpiSize;
 
-// List of hull points
-struct LinkedPoint* hull = NULL;
-
 int main(int argc, char **argv) {
-    struct Arguments arg;
     struct Point *allPoints, *points, min, max;
     int i, min_i, max_i, dataSize;
     double time;
@@ -40,30 +37,42 @@ int main(int argc, char **argv) {
     }
 
     // Initalize MPI
-    MPI_Init(&argc, &argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-    MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);
+    if(arg.serial){
+        mpiRank = 0;
+    } else {
+        MPI_Init(&argc, &argv);
+        MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+        MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);
 
-    define_MPI_POINT(&MPI_POINT);
-    define_MPI_POINT_DISTANCE(&MPI_POINT_DISTANCE);
+        define_MPI_POINT(&MPI_POINT);
+        define_MPI_POINT_DISTANCE(&MPI_POINT_DISTANCE);
 
-    MPI_Op_create((MPI_User_function *) define_MPI_POINT_X_MIN, 1, &MPI_POINT_X_MIN);
-    MPI_Op_create((MPI_User_function *) define_MPI_POINT_X_MAX, 1, &MPI_POINT_X_MAX);
-    MPI_Op_create((MPI_User_function *) define_MPI_POINT_DISTANCE_MAX, 1, &MPI_POINT_DISTANCE_MAX);
+        MPI_Op_create((MPI_User_function *) define_MPI_POINT_X_MIN, 1, &MPI_POINT_X_MIN);
+        MPI_Op_create((MPI_User_function *) define_MPI_POINT_X_MAX, 1, &MPI_POINT_X_MAX);
+        MPI_Op_create((MPI_User_function *) define_MPI_POINT_DISTANCE_MAX, 1, &MPI_POINT_DISTANCE_MAX);
+    }
 
     // Load Data
     if (mpiRank == 0) {
         allPoints = (struct Point*) malloc(arg.numPoints * sizeof(struct Point));
         loadFile(arg.inFile, allPoints, arg.numPoints);
     }
-    dataSize = arg.numPoints / mpiSize;
-    points = (struct Point*) malloc(dataSize * sizeof(struct Point));
+
+    if(arg.serial){
+        dataSize = arg.numPoints;
+        points = allPoints;
+    } else {
+        dataSize = arg.numPoints / mpiSize;
+        points = (struct Point*) malloc(dataSize * sizeof(struct Point));
+    }
 
     //Being Logic
     startTime(&time);
 
     //Scatter data
-    MPI_Scatter(allPoints, dataSize, MPI_POINT, points, dataSize, MPI_POINT, 0, MPI_COMM_WORLD);
+    if(!arg.serial){
+        MPI_Scatter(allPoints, dataSize, MPI_POINT, points, dataSize, MPI_POINT, 0, MPI_COMM_WORLD);
+    }
 
     // Finding the point with minimum and maximum x-coordinate
     min_i = 0;
@@ -76,15 +85,25 @@ int main(int argc, char **argv) {
             max_i = i;
         }
     }
-    MPI_Allreduce(&points[min_i], &min, 1, MPI_POINT, MPI_POINT_X_MIN, MPI_COMM_WORLD);
-    MPI_Allreduce(&points[max_i], &max, 1, MPI_POINT, MPI_POINT_X_MAX, MPI_COMM_WORLD);
+
+    if(arg.serial){
+        min = points[min_i];
+        max = points[max_i];
+    } else {
+        MPI_Allreduce(&points[min_i], &min, 1, MPI_POINT, MPI_POINT_X_MIN, MPI_COMM_WORLD);
+        MPI_Allreduce(&points[max_i], &max, 1, MPI_POINT, MPI_POINT_X_MAX, MPI_COMM_WORLD);
+    }
 
     quickHull(points, dataSize, min, max, 1);
     quickHull(points, dataSize, max, min, 1);
 
     //End Time
-    endTime(mpiRank, mpiSize, time);
-    MPI_Finalize();
+    if(arg.serial){
+        endTimeSingle(time);
+    } else {
+        endTime(mpiRank, mpiSize, time);
+        MPI_Finalize();
+    }
 
     if (mpiRank == 0) {
         writePointListToFile(arg.outFile, hull);
@@ -113,12 +132,16 @@ void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, in
         pd.point = points[sp];
         pd.dist = maxDist;
     }
-    MPI_Allreduce(&pd, &newPD, 1, MPI_POINT_DISTANCE, MPI_POINT_DISTANCE_MAX, MPI_COMM_WORLD);
+
+    if(arg.serial) {
+        newPD = pd;
+    } else {
+        MPI_Allreduce(&pd, &newPD, 1, MPI_POINT_DISTANCE, MPI_POINT_DISTANCE_MAX, MPI_COMM_WORLD);
+    }
 
     if (!newPD.valid) {
         if (mpiRank == 0) {
             hull = insertBefore(hull, p1);
-            //hull = insertBefore(hull, p2);
         }
     } else {
         quickHull(points, n, p1, newPD.point, findSide(newPD.point, p1, p2));

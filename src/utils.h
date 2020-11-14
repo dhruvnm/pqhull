@@ -9,12 +9,14 @@ struct Arguments {
     char* outFile;
     int numPoints;
 
+    int debug;
+
     //For point generation
     int radius;
     int min;
     int max;
 
-    int debug;
+    int serial; //Should the program be run without MPI
 };
 
 struct Point {
@@ -89,5 +91,8 @@ void startTime(double* startTime);
 
 //Standard function to print MPI timing
 void endTime(int rank, int size, double startTime);
+
+//Standard function to time when not using MPI
+void endTimeSingle(double startTime);
 
 #endif

@@ -269,10 +269,11 @@ void parseArgs(int argc, char **argv, struct Arguments* arg){
         {"infile",    required_argument, 0,  'i' },
         {"outfile",   required_argument, 0,  'o' },
         {"numpoints", required_argument, 0,  'n' },
+        {"debug",     no_argument,       0,  'd' },
         {"radius",    required_argument, 0,  'r' },
         {"min",       required_argument, 0,  '-' },
         {"max",       required_argument, 0,  '+' },
-        {"debug",     no_argument,       0,  'd' },
+        {"serial",    no_argument,       0,  's' },
         {0, 0, 0, 0}
     };
 
@@ -280,13 +281,15 @@ void parseArgs(int argc, char **argv, struct Arguments* arg){
     arg->outFile = NULL;
     arg->numPoints = 0;
 
+    arg->debug = 0;
+
     arg->radius = 10;
     arg->min = -10;
     arg->max = 10;
 
-    arg->debug = 0;
+    arg->serial = 0;
 
-    while ((opt = getopt_long(argc, argv, "i:o:n:r:d", long_opts, &long_idx)) != -1) {
+    while ((opt = getopt_long(argc, argv, "i:o:n:dr:s", long_opts, &long_idx)) != -1) {
         switch (opt) {
             case 'i' :
                 arg->inFile = optarg;
@@ -297,6 +300,9 @@ void parseArgs(int argc, char **argv, struct Arguments* arg){
             case 'n' :
                 arg->numPoints = atoi(optarg);
                 break;
+            case 'd' :
+                arg->debug = 1;
+                break;
             case 'r' :
                 arg->radius = atoi(optarg);
                 break;
@@ -306,9 +312,8 @@ void parseArgs(int argc, char **argv, struct Arguments* arg){
             case '+' :
                 arg->max = atoi(optarg);
                 break;
-            case 'd' :
-                arg->debug = 1;
-                break;
+            case 's' :
+                arg->serial = 1;
             default:
                 break;
         }
@@ -337,4 +342,13 @@ void endTime(int rank, int size, double startTime) {
     if (rank == 0){
         printf("TIME: Min: %.6f s Avg: %.6f s Max: %.6f s\n", min, avg, max);
     }
+}
+
+
+void endTimeSingle(double startTime) {
+    double delta;
+
+    delta = MPI_Wtime() - startTime;
+
+    printf("TIME: %.6f s\n", delta);
 }
