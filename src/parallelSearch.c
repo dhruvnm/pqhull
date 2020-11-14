@@ -80,9 +80,7 @@ int main(int argc, char **argv) {
     MPI_Allreduce(&points[max_i], &max, 1, MPI_POINT, MPI_POINT_X_MAX, MPI_COMM_WORLD);
 
     quickHull(points, dataSize, min, max, 1);
-    quickHull(points, dataSize, min, max,-1);
-
-    printf("END\n");
+    quickHull(points, dataSize, max, min, 1);
 
     //End Time
     endTime(mpiRank, mpiSize, time);
@@ -95,10 +93,9 @@ int main(int argc, char **argv) {
 
 void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, int side){
     struct PointDistance pd, newPD;
-    int i, dist, sp, maxDist = -1;
+    int i, sp;
+    double dist, maxDist = -1;
 
-    //Scatter search parameters
-    //printf("CHECK 10\n");
     sp = -1;
     for(i = 0; i < n; i++){
         dist = lineDist(p1, p2, points[i]);
@@ -108,8 +105,7 @@ void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, in
         }
     }
 
-    //printf("CHECK 20\n");
-    if (sp == -1) {
+    if (sp < 0) {
         pd.valid = 0;
         pd.dist = 0;
     } else {
@@ -117,20 +113,15 @@ void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, in
         pd.point = points[sp];
         pd.dist = maxDist;
     }
-
-    //printf("CHECK 30\n");
     MPI_Allreduce(&pd, &newPD, 1, MPI_POINT_DISTANCE, MPI_POINT_DISTANCE_MAX, MPI_COMM_WORLD);
 
-    //printf("CHECK 40\n");
     if (!newPD.valid) {
         if (mpiRank == 0) {
             hull = insertBefore(hull, p1);
-            hull = insertBefore(hull, p2);
+            //hull = insertBefore(hull, p2);
         }
     } else {
-        quickHull(points, n, newPD.point, p1, -findSide(newPD.point, p1, p2));
+        quickHull(points, n, p1, newPD.point, findSide(newPD.point, p1, p2));
         quickHull(points, n, newPD.point, p2, -findSide(newPD.point, p2, p1));
     }
-    //printf("CHECK 50\n");
-
 }

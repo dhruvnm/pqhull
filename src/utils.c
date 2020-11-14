@@ -123,7 +123,7 @@ void define_MPI_POINT_DISTANCE_MAX(struct PointDistance *in, struct PointDistanc
 
 /******************************************************************************/
 int findSide(struct Point p1, struct Point p2, struct Point p) {
-    int v;
+    double v;
 
     v = (p.y - p1.y) * (p2.x - p1.x) - (p2.y - p1.y) * (p.x - p1.x);
 
@@ -136,13 +136,13 @@ int findSide(struct Point p1, struct Point p2, struct Point p) {
     }
 }
 
-int lineDist(struct Point p1, struct Point p2, struct Point p) {
-    int v;
+double lineDist(struct Point p1, struct Point p2, struct Point p) {
+    double v;
 
     v = ((p.y - p1.y) * (p2.x - p1.x) - (p2.y - p1.y) * (p.x - p1.x));
 
     if (v < 0) {
-        return -1 * v;
+        return -1.0 * v;
     } else {
         return v;
     }

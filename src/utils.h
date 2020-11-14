@@ -30,7 +30,7 @@ struct LinkedPoint {
    int index;
 };
 
-//Used in ParallelSearch to reduce over points in which some
+//Used in ParallelSearch to reduce over points in which some are not valid
 struct PointDistance {
     struct Point point;
     double dist;
@@ -55,7 +55,7 @@ int findSide(struct Point p1, struct Point p2, struct Point p);
 
 // returns a value proportional to the distance between the point p
 // and the line joining the points p1 and p2
-int lineDist(struct Point p1, struct Point p2, struct Point p);
+double lineDist(struct Point p1, struct Point p2, struct Point p);
 
 // Get point either left/bottom most (-1) or right/top most (1)
 struct Point* extremaPoint(struct Point* p1, struct Point* p2, int d);
