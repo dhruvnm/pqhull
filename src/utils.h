@@ -81,6 +81,8 @@ void writePointArrayToFile(char* fileName, struct Point* point, int n);
 
 void writePointListToFile(char* fileName, struct LinkedPoint* point);
 
+void writePointListToFileReverse(char* fileName, struct LinkedPoint* point);
+
 void parseArgs(int argc, char **argv, struct Arguments* arg);
 
 /******************************************************************************/

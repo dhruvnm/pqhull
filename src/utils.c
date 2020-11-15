@@ -262,6 +262,25 @@ void writePointListToFile(char* fileName, struct LinkedPoint* head){
     fclose(f);
 }
 
+void writePointListToFileReverse(char* fileName, struct LinkedPoint* head){
+    FILE *f;
+    struct LinkedPoint* lp;
+
+    f = fopen(fileName, "w");
+    if (f == NULL) {
+        printf("Error opening file: %s\n", fileName);
+        exit(1);
+    }
+
+    lp = head;
+    do {
+        fprintf(f, "%lf, %lf\n", lp->point.x, lp->point.y);
+        lp=lp->prev;
+    } while (lp != head);
+
+    fclose(f);
+}
+
 void parseArgs(int argc, char **argv, struct Arguments* arg){
     int opt, long_idx;
 

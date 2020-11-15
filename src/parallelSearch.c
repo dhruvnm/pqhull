@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
     }
 
     if (mpiRank == 0) {
-        writePointListToFile(arg.outFile, hull);
+        writePointListToFileReverse(arg.outFile, hull);
     }
 }
 
