@@ -26,11 +26,12 @@ int main(int argc, char **argv) {
 
         struct Arguments arg;
         struct Point* points;
-        struct LinkedPoint *hull, *P, *Q, *top, *bot;
-        int i, t, b, *proc_stack, *proc_num, top_proc, bot_proc;
+        struct LinkedPoint *hull, *P, *Q, *top, *bot, h_idxs[3];
+        int i, t, b, *proc_stack, proc_num, total, top_proc, bot_proc, h_count;
         pthread_t thread_id;
         struct ProcManagerArgs args;
-        MPI_Request top_req, bot_req;
+        MPI_Request top_req, bot_req, hull_req;
+        MPI_Status hull_stat;
 
         parseArgs(argc, argv, &arg);
         if (arg.numPoints <= 0) {
@@ -93,28 +94,48 @@ int main(int argc, char **argv) {
         }
 
         // Set up process manager
-        proc_num = (int *)malloc(sizeof(int));
-        *proc_num = size - 1;
-        proc_stack = (int *)malloc(*proc_num * sizeof(int));
-        for (i = 0; i < *proc_num; i++) {
+        proc_num = size - 1;
+        total = size - 1;
+        proc_stack = (int *)malloc(total * sizeof(int));
+        for (i = 0; i < total; i++) {
             proc_stack[i] = i + 1;
         }
 
         // Get two process from the stack
-        top_proc = proc_stack[(*proc_num) - 1];
-        bot_proc = proc_stack[(*proc_num) - 2];
-        *proc_num -= 2;
+        top_proc = proc_stack[proc_num - 1];
+        bot_proc = proc_stack[proc_num - 2];
+        proc_num -= 2;
 
         // Start process manager
         args.proc_stack = proc_stack;
         args.proc_num = proc_num;
+        args.total = total;
         pthread_create(&thread_id, NULL, processManager, (void *)&args);
 
         // Call QuickHull
         MPI_Isend(top, t, MPI_LINKED_POINT, top_proc, FUNC_CALL, MPI_COMM_WORLD, &top_req);
         MPI_Isend(bot, b, MPI_LINKED_POINT, bot_proc, FUNC_CALL, MPI_COMM_WORLD, &bot_req);
 
-        writePointListToFile(arg.outFile, hull);
+        while (true) {
+            MPI_Irecv(&h_idxs, 3, MPI_INT, MPI_ANY_SOURCE, HULL_POINT, MPI_COMM_WORLD, &hull_req);
+            MPI_Wait(&hull_req, &hull_stat);
+            MPI_Get_count(&hull_stat, MPI_INT, &h_count);
+
+            if (h_count == 0) {
+                // Stopping condition
+                break;
+            }
+
+            // Otherwise we have a point to insert into the hull
+            hull[h_idxs[0]].next = &hull[h_idxs[1]];
+            hull[h_idxs[1]].prev = &hull[h_idxs[0]];
+            hull[h_idxs[1]].next = &hull[h_idxs[2]];
+            hull[h_idxs[2]].prev = &hull[h_idxs[1]];
+        }
+
+        pthread_join(thread_id, NULL);
+
+        writePointListToFile(arg.outFile, P);
     } else {
         // Worker processes
         LinkedPoint P; // dummy point to pass as an arg
@@ -125,11 +146,36 @@ int main(int argc, char **argv) {
 
 void *processManager(void *args) {
     ProcManagerArgs *arguments = (ProcManagerArgs *)args;
-    int i, *proc_stack, *proc_num;
+
+    int i, *proc_stack, proc_num, total, ret_proc, p_count;
+    MPI_Request proc_req;
+    MPI_Status proc_stat;
     proc_stack = arguments->proc_stack;
     proc_num = arguments->proc_num;
+    total = arguments->total;
 
+    while (proc_num != total) {
+        MPI_Irecv(&ret_proc, 1, MPI_INT, MPI_ANY_SOURCE, PROCESS, MPI_COMM_WORLD, &proc_req);
+        MPI_Wait(&proc_req, &proc_stat);
+        MPI_Get_count(&proc_stat, MPI_INT, &p_count);
+        if (p_count == 0) {
+            // Process Request
+            if (proc_num > 0) {
+                // Processes available
+                ret_proc = proc_stack[proc_num - 1];
+                proc_num--;
+                MPI_Isend(&ret_proc, 1, MPI_INT, proc_stat.MPI_SOURCE, PROCESS, MPI_COMM_WORLD, &proc_req);
+            } else {
+                // No processes available
+                MPI_Isend(NULL, 0, MPI_INT, proc_stat.MPI_SOURCE, PROCESS, MPI_COMM_WORLD, &proc_req);
+            }
+        } else {
+            // Process Return
+            proc_stack[proc_num++] = ret_proc;
+        }
+    }
 
-
-    // MPI stuff
+    // All processes back. Hull must be complete
+    MPI_Isend(NULL, 0, MPI_INT, 0, HULL_POINT, MPI_COMM_WORLD, &proc_req);
+    return NULL;
 }

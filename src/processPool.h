@@ -4,7 +4,7 @@
 #include "utils.h"
 
 struct ProcManagerArgs {
-    int *proc_stack, *proc_num;
+    int *proc_stack, proc_num, total;
 };
 
 enum Mode {
@@ -12,8 +12,10 @@ enum Mode {
     RECURSIVE
 };
 
-enum MessageType {
-    FUNC_CALL
+enum MessageTag {
+    FUNC_CALL,
+    HULL_POINT,
+    PROCESS
 };
 
 /******************************************************************************/
