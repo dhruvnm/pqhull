@@ -13,7 +13,7 @@ genPoints: genPoints.c $(DEPS)
 parallelSearch: parallelSearch.c $(DEPS)
 	$(CC) $(CFLAGS) -o $@ $^
 
-processPool: processPool.c $(DEPS)
+processPool: processPool.c processPool.h $(DEPS)
 	$(CC) $(CFLAGS) -o $@ $^
 
 

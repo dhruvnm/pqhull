@@ -19,12 +19,18 @@ int main(int argc, char **argv) {
 
     // Master Process
     if (rank == 0) {
+        if (size < 3) {
+            printf("This program requires at least 3 processes\n");
+            exit(1);
+        }
+
         struct Arguments arg;
         struct Point* points;
         struct LinkedPoint *hull, *P, *Q, *top, *bot;
         int i, t, b, *proc_stack, *proc_num, top_proc, bot_proc;
-        p_thread thread_id;
+        pthread_t thread_id;
         struct ProcManagerArgs args;
+        MPI_Request top_req, bot_req;
 
         parseArgs(argc, argv, &arg);
         if (arg.numPoints <= 0) {
@@ -38,11 +44,11 @@ int main(int argc, char **argv) {
             exit(1);
         }
 
-        points = malloc(arg.numPoints * sizeof(struct Point));
+        points = (Point *)malloc(arg.numPoints * sizeof(struct Point));
         loadFile(arg.inFile, points, arg.numPoints);
 
         // Convert list of points to linked points
-        hull = malloc(arg.numPoints * sizeof(struct LinkedPoint))
+        hull = (LinkedPoint *)malloc(arg.numPoints * sizeof(struct LinkedPoint));
         for (i = 0; i < arg.numPoints; i++) {
             hull[i].point = points[i];
             hull[i].index = i;
@@ -74,8 +80,8 @@ int main(int argc, char **argv) {
         Q->prev = P;
 
         // Find the points on top and below the line formed by P and Q
-        top = malloc(arg.numPoints * sizeof(struct LinkedPoint));
-        bot = malloc(arg.numPoints * sizeof(struct LinkedPoint));
+        top = (LinkedPoint *)malloc(arg.numPoints * sizeof(struct LinkedPoint));
+        bot = (LinkedPoint *)malloc(arg.numPoints * sizeof(struct LinkedPoint));
         t = 0;
         b = 0;
         for (i = 0; i < arg.numPoints; i++) {
@@ -87,9 +93,9 @@ int main(int argc, char **argv) {
         }
 
         // Set up process manager
-        proc_num = malloc(sizeof(int));
+        proc_num = (int *)malloc(sizeof(int));
         *proc_num = size - 1;
-        proc_stack = malloc(*proc_num * sizeof(int));
+        proc_stack = (int *)malloc(*proc_num * sizeof(int));
         for (i = 0; i < *proc_num; i++) {
             proc_stack[i] = i + 1;
         }
@@ -102,24 +108,26 @@ int main(int argc, char **argv) {
         // Start process manager
         args.proc_stack = proc_stack;
         args.proc_num = proc_num;
-        pthread_create(&thread_id, NULL, processManager, &args);
+        pthread_create(&thread_id, NULL, processManager, (void *)&args);
 
         // Call QuickHull
-
+        MPI_Isend(top, t, MPI_LINKED_POINT, top_proc, FUNC_CALL, MPI_COMM_WORLD, &top_req);
+        MPI_Isend(bot, b, MPI_LINKED_POINT, bot_proc, FUNC_CALL, MPI_COMM_WORLD, &bot_req);
 
         writePointListToFile(arg.outFile, hull);
     } else {
         // Worker processes
         LinkedPoint P; // dummy point to pass as an arg
-        quickHull(NULL, 0, P, P, Mode.MESSAGE);
+        quickHull(NULL, 0, P, P, MESSAGE);
     }
     return 0;
 }
 
-void processManager(struct ProcManagerArgs *args) {
+void *processManager(void *args) {
+    ProcManagerArgs *arguments = (ProcManagerArgs *)args;
     int i, *proc_stack, *proc_num;
-    proc_stack = args->proc_stack;
-    proc_num = args->proc_num;
+    proc_stack = arguments->proc_stack;
+    proc_num = arguments->proc_num;
 
 
 

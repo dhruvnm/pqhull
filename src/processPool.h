@@ -12,10 +12,14 @@ enum Mode {
     RECURSIVE
 };
 
+enum MessageType {
+    FUNC_CALL
+};
+
 /******************************************************************************/
 
 // Manages the process pool
-void processManager(struct ProcManagerArgs *args);
+void *processManager(void *args);
 
 void quickHull(LinkedPoint *points, int n, LinkedPoint P, LinkedPoint Q, Mode m);
 
