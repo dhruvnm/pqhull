@@ -53,13 +53,19 @@ int main(int argc, char **argv) {
 
     loadFile(arg.inFile, &worker.points[0], arg.numPoints);
 
-    // Master Process
+    std::vector<Point> hull;
+    double time;
+    startTime(&time);
     if (rank == 0) {
-        auto hull = worker.quickHull();
-
-        writePointArrayToFile(arg.outFile, &hull[0], hull.size());
+        // Master Process
+        hull = worker.quickHull();
     } else {
         worker.work();
+    }
+    endTime(rank, size, time);
+
+    if (rank == 0) {
+        writePointArrayToFile(arg.outFile, &hull[0], hull.size());
     }
 
     MPI_Finalize();
@@ -181,7 +187,7 @@ std::vector<Point> PointCloud::spliceHulls(const std::vector<Point> &hullA, cons
     return hull;
 }
 
-std::vector<Point> PointCloud::qpHelper(const std::vector<int> &indices, struct Point P, struct Point Q, int calls) {
+std::vector<Point> PointCloud::qpHelper(const std::vector<int> &indices, Point P, Point Q, int calls) {
     if (indices.size() == 0) {
         std::vector<Point> hull;
         hull.push_back(Q);
