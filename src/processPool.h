@@ -21,7 +21,7 @@ enum MessageTag {
     FUNC_CALL, // Message to call quickhull via message. 
     HULL_POINT, // Message to send a discovered hull point to master
     PROCESS, // Message to request or return a process
-    BUF_SIZE // Message to define the buffer size needded before a FUNC_CALL
+    BUF_SIZE, // Message to define the buffer size needded before a FUNC_CALL
 };
 
 /******************************************************************************/
@@ -30,6 +30,6 @@ enum MessageTag {
 void *processManager(void *args);
 
 // The quickHull routine. 
-void quickHull(LinkedPoint *points, int n, LinkedPoint P, LinkedPoint Q, Mode m);
+void quickHull(LinkedPoint *points, int n, LinkedPoint P, LinkedPoint Q, Mode m, int rank);
 
 #endif
