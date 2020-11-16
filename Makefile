@@ -16,6 +16,9 @@ parallelSearch: parallelSearch.c $(DEPS)
 processPool: processPool.c processPool.h $(DEPS)
 	$(CC) $(CFLAGS) -o $@ $^
 
+forkJoin: forkJoin.c $(DEPS)
+	$(CC) $(CFLAGS) -o $@ $^
+
 
 clean:
 	rm $(PROG)
