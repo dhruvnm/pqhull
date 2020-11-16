@@ -26,11 +26,11 @@ int main(int argc, char **argv) {
 
         struct Arguments arg;
         struct Point* points;
-        struct LinkedPoint *hull, *P, *Q, *top, *bot, h_idxs[3];
-        int i, t, b, *proc_stack, proc_num, total, top_proc, bot_proc, h_count;
+        struct LinkedPoint *hull, *P, *Q, *top, *bot;
+        int i, t, b, side, *proc_stack, proc_num, total, top_proc, bot_proc, h_idxs[3], h_count;
         pthread_t thread_id;
         struct ProcManagerArgs args;
-        MPI_Request top_req, bot_req, hull_req;
+        MPI_Request hull_req;
         MPI_Status hull_stat;
 
         parseArgs(argc, argv, &arg);
@@ -86,12 +86,19 @@ int main(int argc, char **argv) {
         t = 0;
         b = 0;
         for (i = 0; i < arg.numPoints; i++) {
-            if (findSide(P->point, Q->point, hull[i].point) > 0) {
+            side = findSide(P->point, Q->point, hull[i].point);
+            if ( side > 0) {
                 top[t++] = hull[i];
-            } else {
+            } else if (side < 0) {
                 bot[b++] = hull[i];
             }
         }
+
+        // Add in the two end points to the end of the buffer
+        top[t] = *P;
+        top[t+1] = *Q;
+        bot[b] = *Q;
+        bot[b+1] = *P;
 
         // Set up process manager
         proc_num = size - 1;
@@ -113,8 +120,10 @@ int main(int argc, char **argv) {
         pthread_create(&thread_id, NULL, processManager, (void *)&args);
 
         // Call QuickHull
-        MPI_Isend(top, t, MPI_LINKED_POINT, top_proc, FUNC_CALL, MPI_COMM_WORLD, &top_req);
-        MPI_Isend(bot, b, MPI_LINKED_POINT, bot_proc, FUNC_CALL, MPI_COMM_WORLD, &bot_req);
+        MPI_Isend(&t, 1, MPI_INT, top_proc, BUF_SIZE, MPI_COMM_WORLD, NULL);
+        MPI_Isend(&b, 1, MPI_INT, bot_proc, BUF_SIZE, MPI_COMM_WORLD, NULL);
+        MPI_Isend(top, t+2, MPI_LINKED_POINT, top_proc, FUNC_CALL, MPI_COMM_WORLD, NULL);
+        MPI_Isend(bot, b+2, MPI_LINKED_POINT, bot_proc, FUNC_CALL, MPI_COMM_WORLD, NULL);
 
         while (true) {
             MPI_Irecv(&h_idxs, 3, MPI_INT, MPI_ANY_SOURCE, HULL_POINT, MPI_COMM_WORLD, &hull_req);
@@ -147,7 +156,7 @@ int main(int argc, char **argv) {
 void *processManager(void *args) {
     ProcManagerArgs *arguments = (ProcManagerArgs *)args;
 
-    int i, *proc_stack, proc_num, total, ret_proc, p_count;
+    int *proc_stack, proc_num, total, ret_proc, p_count;
     MPI_Request proc_req;
     MPI_Status proc_stat;
     proc_stack = arguments->proc_stack;
@@ -178,4 +187,55 @@ void *processManager(void *args) {
     // All processes back. Hull must be complete
     MPI_Isend(NULL, 0, MPI_INT, 0, HULL_POINT, MPI_COMM_WORLD, &proc_req);
     return NULL;
+}
+
+void quickHull(LinkedPoint *points, int n, LinkedPoint P, LinkedPoint Q, Mode m) {
+    MPI_Request req;
+    MPI_Status stat;
+    LinkedPoint C, *PC, *CQ;
+    double maxDist, dist;
+    int i, retBuf[3], side;
+
+    if (m == MESSAGE) {
+        // Get points from a diff process
+        // Get buffer size
+        MPI_Irecv(&n, 1, MPI_INT, MPI_ANY_SOURCE, BUF_SIZE, MPI_COMM_WORLD, &req);
+        MPI_Wait(&req, &stat);
+        // Need two extra spots for P and Q
+        points = (LinkedPoint *)malloc((n+2) * sizeof(struct LinkedPoint));
+        // Get points
+        MPI_Irecv(points, n, MPI_LINKED_POINT, MPI_ANY_SOURCE, FUNC_CALL, MPI_COMM_WORLD, &req);
+        MPI_Wait(&req, &stat);
+        P = points[n];
+        Q = points[n+1];
+    }
+
+    if (n == 0) {
+        // Base case
+    }
+
+    // Find max distance point from line PQ
+    C = points[0];
+    maxDist = lineDist(P.point, Q.point, C.point);
+    for (i = 1; i < n; i++) {
+        dist = lineDist(P.point, Q.point, points[i].point);
+        if (dist > maxDist) {
+            maxDist = dist;
+            C = points[i];
+        }
+    }
+
+    // Send the point idx back to master so it can be added to hull
+    retBuf[0] = P.index;
+    retBuf[1] = C.index;
+    retBuf[2] = Q.index;
+
+    MPI_Isend(&retBuf, 3, MPI_INT, 0, HULL_POINT, MPI_COMM_WORLD, NULL);
+
+    // Split pointsets
+    PC = (LinkedPoint *)malloc(n * sizeof(struct LinkedPoint));
+    CQ = (LinkedPoint *)malloc(n * sizeof(struct LinkedPoint));
+    for (i = 0; i < n; i++) {
+
+    }
 }

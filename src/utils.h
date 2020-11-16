@@ -4,19 +4,19 @@
 #include "mpi.h"
 
 struct Arguments {
-    //General arguments
+    // General arguments
     char* inFile;
     char* outFile;
     int numPoints;
 
     int debug;
 
-    //For point generation
+    // For point generation
     int radius;
     int min;
     int max;
 
-    int serial; //Should the program be run without MPI
+    int serial; // Should the program be run without MPI
 };
 
 struct Point {
@@ -28,7 +28,7 @@ struct Point {
     bool operator!=(const Point& rhs) const { return !(*this == rhs); }
 };
 
-//Node of a circular doubly linked list
+// Node of a circular doubly linked list
 struct LinkedPoint {
    struct Point point;
    struct LinkedPoint* prev;
@@ -36,7 +36,7 @@ struct LinkedPoint {
    int index;
 };
 
-//Used in ParallelSearch to reduce over points in which some are not valid
+// Used in ParallelSearch to reduce over points in which some are not valid
 struct PointDistance {
     struct Point point;
     double dist;
@@ -92,13 +92,13 @@ void parseArgs(int argc, char **argv, struct Arguments* arg);
 /******************************************************************************/
 void printPoint(struct Point p);
 
-//Standard function to start MPI timing
+// Standard function to start MPI timing
 void startTime(double* startTime);
 
-//Standard function to print MPI timing
+// Standard function to print MPI timing
 void endTime(int rank, int size, double startTime);
 
-//Standard function to time when not using MPI
+// Standard function to time when not using MPI
 void endTimeSingle(double startTime);
 
 #endif

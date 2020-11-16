@@ -363,7 +363,6 @@ void endTime(int rank, int size, double startTime) {
     }
 }
 
-
 void endTimeSingle(double startTime) {
     double delta;
 
