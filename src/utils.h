@@ -20,8 +20,12 @@ struct Arguments {
 };
 
 struct Point {
-   double x;
-   double y;
+    double x;
+    double y;
+
+    bool operator==(const Point& rhs) const { return this->x == rhs.x && this->y == rhs.y; }
+
+    bool operator!=(const Point& rhs) const { return !(*this == rhs); }
 };
 
 //Node of a circular doubly linked list
