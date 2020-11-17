@@ -27,7 +27,7 @@ enum MessageTag {
 /******************************************************************************/
 
 // Manages the process pool
-void *processManager(void *args);
+void processManager(int total);
 
 // The quickHull routine. 
 void quickHull(LinkedPoint *points, int n, LinkedPoint P, LinkedPoint Q, Mode m, int rank);

@@ -11,11 +11,12 @@ MPI_Datatype MPI_LINKED_POINT;
 int main(int argc, char **argv) {
     // Initialize MPI
     int rank, size, provided;
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-    if (provided < MPI_THREAD_MULTIPLE) {
-        printf("Thread support not given\n");
-        exit(1);
-    }
+    //MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+    //if (provided < MPI_THREAD_MULTIPLE) {
+    //    printf("Thread support not given\n");
+    //    exit(1);
+    //}
+    MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
@@ -23,8 +24,8 @@ int main(int argc, char **argv) {
 
     // Master Process
     if (rank == 0) {
-        if (size < 3) {
-            printf("This program requires at least 3 processes\n");
+        if (size < 4) {
+            printf("This program requires at least 4 processes\n");
             exit(1);
         }
 
@@ -105,23 +106,23 @@ int main(int argc, char **argv) {
         bot[b+1] = *P;
 
         // Set up process manager
-        proc_num = size - 1;
-        total = size - 1;
-        proc_stack = (int *)malloc(total * sizeof(int));
-        for (i = 0; i < total; i++) {
-            proc_stack[i] = i + 1;
-        }
+        //proc_num = size - 1;
+        //total = size - 1;
+        //proc_stack = (int *)malloc(total * sizeof(int));
+        //for (i = 0; i < total; i++) {
+        //    proc_stack[i] = i + 1;
+        //}
 
         // Get two process from the stack
-        top_proc = proc_stack[proc_num - 1];
-        bot_proc = proc_stack[proc_num - 2];
-        proc_num -= 2;
+        top_proc = size - 1;
+        bot_proc = size - 2;
+        //proc_num -= 2;
 
         // Start process manager
-        args.proc_stack = proc_stack;
-        args.proc_num = proc_num;
-        args.total = total;
-        pthread_create(&thread_id, NULL, processManager, (void *)&args);
+        //args.proc_stack = proc_stack;
+        //args.proc_num = proc_num;
+        //args.total = total;
+        //pthread_create(&thread_id, NULL, processManager, (void *)&args);
 
         // Call QuickHull
         MPI_Isend(&t, 1, MPI_INT, top_proc, BUF_SIZE, MPI_COMM_WORLD, &dummy_req);
@@ -132,6 +133,8 @@ int main(int argc, char **argv) {
         MPI_Request_free(&dummy_req);
         MPI_Isend(bot, b+2, MPI_LINKED_POINT, bot_proc, FUNC_CALL, MPI_COMM_WORLD, &dummy_req);
         MPI_Request_free(&dummy_req);
+
+        printf("Master sent initial data\n");
 
         free(top);
         free(bot);
@@ -154,11 +157,13 @@ int main(int argc, char **argv) {
         }
 
         // Stop timing. Done computing hull 
-        pthread_join(thread_id, NULL);
-        free(proc_stack);
+        //pthread_join(thread_id, NULL);
+        //free(proc_stack);
 
         writePointListToFileReverse(arg.outFile, P);
         free(hull);
+    } else if (rank == 1) {
+        processManager(size - 2);
     } else {
         // Worker processes
         LinkedPoint P; // dummy point to pass as an arg
@@ -170,35 +175,47 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-void *processManager(void *args) {
-    ProcManagerArgs *arguments = (ProcManagerArgs *)args;
+void processManager(int total) {
+    //ProcManagerArgs *arguments = (ProcManagerArgs *)args;
 
-    int *proc_stack, proc_num, total, ret_proc, p_count, i;
+    int *proc_stack, proc_num, ret_proc, p_count, i;
     MPI_Request proc_req;
     MPI_Status proc_stat;
-    proc_stack = arguments->proc_stack;
-    proc_num = arguments->proc_num;
-    total = arguments->total;
+    proc_stack = (int *)malloc(total * sizeof(int));
+    proc_num = total - 2;
+    //total = arguments->total;
+
+    for (i = 0; i < proc_num; i++) {
+        proc_stack[i] = i+2;
+    }
+
+    printf("Total: %d, Proc_num: %d\n", total, proc_num);
 
     while (proc_num != total) {
+        printf("Waiting for requests\n");
         MPI_Irecv(&ret_proc, 1, MPI_INT, MPI_ANY_SOURCE, PROCESS, MPI_COMM_WORLD, &proc_req);
         MPI_Wait(&proc_req, &proc_stat);
         MPI_Get_count(&proc_stat, MPI_INT, &p_count);
+        printf("Recieved a request\n");
         if (p_count == 0) {
+            printf("Process request\n");
             // Process Request
             if (proc_num > 0) {
                 // Processes available
+                printf("Process available\n");
                 ret_proc = proc_stack[proc_num - 1];
                 proc_num--;
                 MPI_Isend(&ret_proc, 1, MPI_INT, proc_stat.MPI_SOURCE, PROCESS, MPI_COMM_WORLD, &proc_req);
                 MPI_Request_free(&proc_req);
             } else {
                 // No processes available
+                printf("No process available\n");
                 MPI_Isend(NULL, 0, MPI_INT, proc_stat.MPI_SOURCE, PROCESS, MPI_COMM_WORLD, &proc_req);
                 MPI_Request_free(&proc_req);
             }
         } else {
             // Process Return
+            printf("Process return\n");
             proc_stack[proc_num++] = ret_proc;
         }
     }
@@ -212,11 +229,10 @@ void *processManager(void *args) {
         MPI_Isend(NULL, 0, MPI_INT, proc_stack[i], BUF_SIZE, MPI_COMM_WORLD, &proc_req);
         MPI_Request_free(&proc_req);
     }
-
-    return NULL;
 }
 
 void quickHull(LinkedPoint *points, int n, LinkedPoint P, LinkedPoint Q, Mode m, int rank) {
+    printf("Rank %d: Entering Quickhull\n", rank);
     MPI_Request req;
     MPI_Status stat;
     struct LinkedPoint C, *PC, *CQ;
@@ -226,8 +242,10 @@ void quickHull(LinkedPoint *points, int n, LinkedPoint P, LinkedPoint Q, Mode m,
     if (m == MESSAGE) {
         // Get points from a diff process
         // Get buffer size
+        printf("Rank %d: Entered message initialization\n", rank);
         MPI_Irecv(&n, 1, MPI_INT, MPI_ANY_SOURCE, BUF_SIZE, MPI_COMM_WORLD, &req);
         MPI_Wait(&req, &stat);
+        printf("Rank %d: Recieved buf size\n", rank);
         MPI_Get_count(&stat, MPI_INT, &b_count);
         if (b_count == 0) {
             // This is a signal for the proc to die
@@ -235,13 +253,18 @@ void quickHull(LinkedPoint *points, int n, LinkedPoint P, LinkedPoint Q, Mode m,
         }
         // Need two extra spots for P and Q
         points = (LinkedPoint *)malloc((n+2) * sizeof(struct LinkedPoint));
+        printf("Rank %d: Malloc: %x\n", rank, points);
 
         // Get points
         MPI_Irecv(points, n+2, MPI_LINKED_POINT, MPI_ANY_SOURCE, FUNC_CALL, MPI_COMM_WORLD, &req);
         MPI_Wait(&req, &stat);
 
+        printf("Rank %d: Recieved points\n", rank);
+
         P = points[n];
         Q = points[n+1];
+
+        printf("Rank %d: Done recieving stuff\n", rank);
     }
 
     if (n != 0)
@@ -257,6 +280,8 @@ void quickHull(LinkedPoint *points, int n, LinkedPoint P, LinkedPoint Q, Mode m,
             }
         }
 
+        printf("Rank %d: Found max dist point\n", rank);
+
         // Send the point idx back to master so it can be added to hull
         retBuf[0] = P.index;
         retBuf[1] = C.index;
@@ -264,6 +289,8 @@ void quickHull(LinkedPoint *points, int n, LinkedPoint P, LinkedPoint Q, Mode m,
 
         MPI_Isend(&retBuf, 3, MPI_INT, 0, HULL_POINT, MPI_COMM_WORLD, &req);
         MPI_Request_free(&req);
+
+        printf("Rank %d: Sent point to master\n", rank);
 
         // Split pointsets
         PC = (LinkedPoint *)malloc((n+2) * sizeof(struct LinkedPoint));
@@ -279,22 +306,30 @@ void quickHull(LinkedPoint *points, int n, LinkedPoint P, LinkedPoint Q, Mode m,
             }
         }
 
+        printf("Rank %d: Done splitting points\n", rank);
+
         // Free the points buffer
         free(points);
 
+        printf("Rank %d: Before requesting a process\n", rank);
+
         // Request a new proc
-        MPI_Isend(NULL, 0, MPI_INT, 0, PROCESS, MPI_COMM_WORLD, &req);
+        MPI_Isend(NULL, 0, MPI_INT, 1, PROCESS, MPI_COMM_WORLD, &req);
         MPI_Request_free(&req);
-        MPI_Irecv(&newProc, 1, MPI_INT, 0, PROCESS, MPI_COMM_WORLD, &req);
+        printf("Rank %d: Sent request for process\n", rank);
+        MPI_Irecv(&newProc, 1, MPI_INT, 1, PROCESS, MPI_COMM_WORLD, &req);
         MPI_Wait(&req, &stat);
         MPI_Get_count(&stat, MPI_INT, &p_count);
+        printf("Rank %d: Recieved a response\n", rank);
 
         if (p_count == 0) {
             // No process available. Make two serial recursive calls
+            printf("Rank %d: Two Serial Recursive calls\n", rank);
             quickHull(PC, l, P, C, RECURSIVE, rank);
             quickHull(CQ, r, C, Q, RECURSIVE, rank);
         } else {
             // Process was available!
+            printf("Rank %d: Process was available\n", rank);
             PC[l] = P;
             PC[l+1] = C;
             MPI_Isend(&l, 1, MPI_INT, newProc, BUF_SIZE, MPI_COMM_WORLD, &req);
@@ -310,7 +345,7 @@ void quickHull(LinkedPoint *points, int n, LinkedPoint P, LinkedPoint Q, Mode m,
     // Return process if not called recursively
     if (m == MESSAGE) {
         // Send proc back
-        MPI_Isend(&rank, 1, MPI_INT, 0, PROCESS, MPI_COMM_WORLD, &req);
+        MPI_Isend(&rank, 1, MPI_INT, 1, PROCESS, MPI_COMM_WORLD, &req);
         MPI_Request_free(&req);
         // Call itself in message mode
         quickHull(NULL, 0, P, P, MESSAGE, rank);

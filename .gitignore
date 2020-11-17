@@ -2,3 +2,4 @@ genPoints
 parallelSearch
 processPool
 *.sh
+slurm*

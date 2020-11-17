@@ -56,6 +56,8 @@ int main(int argc, char **argv) {
     if (mpiRank == 0) {
         allPoints = (struct Point*) malloc(arg.numPoints * sizeof(struct Point));
         loadFile(arg.inFile, allPoints, arg.numPoints);
+    } else {
+        allPoints = NULL;
     }
 
     if(arg.serial){
