@@ -3,11 +3,6 @@
 
 #include "utils.h"
 
-// Arguments sent to the process manager thread
-struct ProcManagerArgs {
-    int *proc_stack, proc_num, total;
-};
-
 // Defines if quickhull is being called recursively
 // or if it should wait for a message.
 enum Mode {
