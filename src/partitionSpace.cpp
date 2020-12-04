@@ -15,6 +15,7 @@ MPI_Datatype MPI_POINT;
 
 using namespace std;
 
+void output_vector(const string filename, vector<Point> v);
 circular_linked_list<Point>* serial_quick_hull(vector<Point>& points);
 circular_linked_list<Point>*  mergeHulls(vector<circular_linked_list<Point>*>& hulls,
                                          int low, int high);
@@ -97,13 +98,9 @@ int main(int argc, char **argv) {
         circular_linked_list<Point>* h = serial_quick_hull(my_points);
         auto my_hull = h->cll_to_vector();
 
-        for (int i = 1; i < size; ++i) {
-            int count = my_hull.size();
-            MPI_Isend(&count, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &req[rank]);
-        }
-        for (int i = 1; i < size; ++i) {
-            MPI_Isend(my_hull.data(), my_hull.size(), MPI_POINT, 0, 0, MPI_COMM_WORLD, &req[rank]);
-        }
+        int count = my_hull.size();
+        MPI_Send(&count, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+        MPI_Send(my_hull.data(), my_hull.size(), MPI_POINT, 0, 0, MPI_COMM_WORLD);
     }
 
     if (rank == 0) {
@@ -113,14 +110,6 @@ int main(int argc, char **argv) {
         ofstream time_file, hull_file;
 
         hulls[0] = serial_quick_hull(pointsForProc[0]);
-
-/*
-        hull_file.open(arg.outFile);
-        hull_file << setprecision(6) << fixed;
-        for (auto p :  hulls[0]->cll_to_vector()) {
-            hull_file << p.x << ", " << p.y << endl;
-        }
-        hull_file.close();*/
 
         for (int i = 1; i < size; ++i) {
             MPI_Irecv(&hull_sizes[i], 1, MPI_INT, i,
@@ -144,18 +133,21 @@ int main(int argc, char **argv) {
 
         vector<Point> fl = final_hull->cll_to_vector();
         time_file.open("partition_space_time_size_" + to_string(size));
-
         time_file << time << endl;
-        time_file.close();
-        hull_file.open(arg.outFile);
-        hull_file << setprecision(6) << fixed;
-        for (auto p :  fl) {
-            hull_file << p.x << ", " << p.y << endl;
-        }
-        hull_file.close();
+        output_vector(arg.outFile, fl);
     }
     MPI_Finalize();
     return 0;
+}
+
+void output_vector(const string filename, vector<Point> v) {
+    ofstream hull_file;
+    hull_file.open(filename);
+    hull_file << setprecision(6) << fixed;
+    for (auto p : v) {
+        hull_file << p.x << ", " << p.y << endl;
+    }
+    hull_file.close();
 }
 
 
@@ -231,7 +223,6 @@ circular_linked_list<Point>* mergeHulls(vector<circular_linked_list<Point>*>& hu
     }
     circular_linked_list<Point>* left = mergeHulls(hulls, low, (low + high) / 2);
     circular_linked_list<Point>* right = mergeHulls(hulls, (low + high) / 2 + 1, high);
-
     return merge(left, right);
 }
 
