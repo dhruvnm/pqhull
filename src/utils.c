@@ -10,9 +10,9 @@
 void define_MPI_POINT(MPI_Datatype* MPI_POINT){
     //Collect necessary data for MPI
     int numFields = 2;
-    int fieldLengths[numFields] = {1,1};
-    MPI_Aint fieldOffsets[numFields];
-    MPI_Datatype fieldTypes[numFields] = {MPI_DOUBLE, MPI_DOUBLE};
+    int fieldLengths[2] = {1,1};
+    MPI_Aint fieldOffsets[2];
+    MPI_Datatype fieldTypes[2] = {MPI_DOUBLE, MPI_DOUBLE};
 
     //Fill field offsets with correct values
     fieldOffsets[0] = offsetof(struct Point, x);
@@ -59,9 +59,9 @@ void define_MPI_POINT_X_MAX(struct Point *in, struct Point *out, int *len, MPI_D
 void define_MPI_LINKED_POINT(MPI_Datatype* MPI_LINKED_POINT){
     //Collect necessary data for MPI
     int numFields = 5;
-    int fieldLengths[numFields] = {1,1,1,1,1};
-    MPI_Aint fieldOffsets[numFields];
-    MPI_Datatype fieldTypes[numFields] = {MPI_DOUBLE, MPI_DOUBLE, MPI_LONG_LONG, MPI_LONG_LONG, MPI_INT};
+    int fieldLengths[5] = {1,1,1,1,1};
+    MPI_Aint fieldOffsets[5];
+    MPI_Datatype fieldTypes[5] = {MPI_DOUBLE, MPI_DOUBLE, MPI_LONG_LONG, MPI_LONG_LONG, MPI_INT};
 
     //Fill field offsets with correct values
     fieldOffsets[0] = offsetof(struct LinkedPoint, point) + offsetof(struct Point, x);
@@ -79,9 +79,9 @@ void define_MPI_LINKED_POINT(MPI_Datatype* MPI_LINKED_POINT){
 void define_MPI_POINT_DISTANCE(MPI_Datatype* MPI_POINT_DISTANCE){
     //Collect necessary data for MPI
     int numFields = 4;
-    int fieldLengths[numFields] = {1,1,1,1};
-    MPI_Aint fieldOffsets[numFields];
-    MPI_Datatype fieldTypes[numFields] = {MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT};
+    int fieldLengths[4] = {1,1,1,1};
+    MPI_Aint fieldOffsets[4];
+    MPI_Datatype fieldTypes[4] = {MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT};
 
     //Fill field offsets with correct values
     fieldOffsets[0] = offsetof(struct PointDistance, point) + offsetof(struct Point, x);
