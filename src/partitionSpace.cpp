@@ -15,9 +15,10 @@ MPI_Datatype MPI_POINT;
 
 using namespace std;
 
-vector<Point> serial_quick_hull(vector<Point>& points);
-vector<Point> mergeHulls(vector<vector<Point>>& hulls, int low, int high);
-vector<Point> merge(vector<Point>& left, vector<Point>& right);
+circular_linked_list<Point>* serial_quick_hull(vector<Point>& points);
+circular_linked_list<Point>*  mergeHulls(vector<circular_linked_list<Point>*>& hulls,
+                                         int low, int high);
+circular_linked_list<Point>*  merge(circular_linked_list<Point>*, circular_linked_list<Point>*);
 void qh_helper(vector<Point>& points, circular_linked_list<Point>* hull, Point P, Point Q);
 
 int main(int argc, char **argv) {
@@ -55,7 +56,6 @@ int main(int argc, char **argv) {
 
 
     if (rank == 0) {
-        cout << "in rank 0" << endl;
         time = MPI_Wtime();
         Point* left = &points[0], *right = &points[0];
         int idx;
@@ -72,14 +72,9 @@ int main(int argc, char **argv) {
         }
         low = left->x;
         high = right->x;
-        cout << "left: " << low  << endl;
-        cout << "right: " << high << endl;
 
         for (int i = 1; i < arg.numPoints; ++i) {
             idx = (size * (points[i].x - low)) / (high - low);
-            cout << "point: " << "(" << points[i].x << "," << points[i].y << ")" << endl;
-            cout << "low: " << low << ", high: " << high << endl;
-            cout << "proc: " << idx << endl;
             if (idx == size)
                 idx--;
             pointsForProc[idx].push_back(points[i]);
@@ -99,7 +94,8 @@ int main(int argc, char **argv) {
 
         MPI_Recv(my_points.data(), num, MPI_POINT, 0, 0, MPI_COMM_WORLD, &status[rank]);
 
-        vector<Point> my_hull = serial_quick_hull(my_points);
+        circular_linked_list<Point>* h = serial_quick_hull(my_points);
+        auto my_hull = h->cll_to_vector();
 
         for (int i = 1; i < size; ++i) {
             int count = my_hull.size();
@@ -111,50 +107,64 @@ int main(int argc, char **argv) {
     }
 
     if (rank == 0) {
-        cout << "computing hull in rank 0" << endl;
-        vector<vector<Point>> hulls(size);
+        vector<circular_linked_list<Point>*> hulls(size);
         vector<int> hull_sizes(size);
-        vector<Point> my_hull = serial_quick_hull(pointsForProc[0]);
-        hulls[0] = my_hull;
+        vector<vector<Point>> vhulls(size);
+        ofstream time_file, hull_file;
+
+        hulls[0] = serial_quick_hull(pointsForProc[0]);
+
+/*
+        hull_file.open(arg.outFile);
+        hull_file << setprecision(6) << fixed;
+        for (auto p :  hulls[0]->cll_to_vector()) {
+            hull_file << p.x << ", " << p.y << endl;
+        }
+        hull_file.close();*/
 
         for (int i = 1; i < size; ++i) {
             MPI_Irecv(&hull_sizes[i], 1, MPI_INT, i,
                       0, MPI_COMM_WORLD, &req[i]);
         }
-
         for (int i = 1; i < size; ++i) {
             MPI_Wait(&req[i], &status[i]);
-            hulls[i].resize(hull_sizes[i]);
+            vhulls[i].resize(hull_sizes[i]);
         }
 
         for (int i = 1; i < size; ++i) {
-            MPI_Irecv(hulls[i].data(), hulls[i].size(), MPI_POINT, i,
+            MPI_Irecv(vhulls[i].data(), vhulls[i].size(), MPI_POINT, i,
                       0, MPI_COMM_WORLD, &req[i]);
         }
         for (int i = 1; i < size; ++i) {
             MPI_Wait(&req[i], &status[i]);
+            hulls[i] = circular_linked_list<Point>::vector_to_cll(vhulls[i]);
         }
-        auto final_hull = mergeHulls(hulls, 0, hulls.size() - 1);
+        circular_linked_list<Point>* final_hull = mergeHulls(hulls, 0, hulls.size() - 1);
         time = MPI_Wtime() - time;
-        ofstream time_file, hull_file;
+
+        vector<Point> fl = final_hull->cll_to_vector();
         time_file.open("partition_space_time_size_" + to_string(size));
+
         time_file << time << endl;
         time_file.close();
         hull_file.open(arg.outFile);
         hull_file << setprecision(6) << fixed;
-        for (auto p : final_hull) {
+        for (auto p :  fl) {
             hull_file << p.x << ", " << p.y << endl;
         }
         hull_file.close();
     }
+    MPI_Finalize();
+    return 0;
 }
 
-vector<Point> serial_quick_hull(vector<Point>& points) {
+
+circular_linked_list<Point>* serial_quick_hull(vector<Point>& points) {
     Point *left, *right;
     vector<Point> top, bottom;
     circular_linked_list<Point>* hull;
     if (points.size() <= 3) {
-        return points;
+        return circular_linked_list<Point>::vector_to_cll(points);
     }
     left = &points[0], right = &points[0];
     for (unsigned int i = 1; i < points.size(); ++i) {
@@ -177,8 +187,10 @@ vector<Point> serial_quick_hull(vector<Point>& points) {
     hull = new circular_linked_list<Point>(*left);
     hull->insert_after(*right);
 
+    circular_linked_list<Point>* f = hull->next;
+
     qh_helper(top, hull, *left, *right);
-    qh_helper(bottom, hull, *right, *left);
+    qh_helper(bottom, f, *right, *left);
 
     return hull;
 }
@@ -197,6 +209,7 @@ void qh_helper(vector<Point>& points, circular_linked_list<Point>* hull, Point P
         }
     }
     hull->insert_after(*farthest);
+    circular_linked_list<Point>* f = hull->next;
     vector<Point> left, right;
     for (unsigned int i = 0; i < points.size(); ++i) {
         Point p = points[i];
@@ -208,17 +221,58 @@ void qh_helper(vector<Point>& points, circular_linked_list<Point>* hull, Point P
         }
     }
     qh_helper(left, hull, P, *farthest);
-    qh_helper(right, hull, *farthest, Q);
+    qh_helper(right, f, *farthest, Q);
 }
 
-vector<Point> mergeHulls(vector<vector<Point>>& hulls, int low, int high) {
+circular_linked_list<Point>* mergeHulls(vector<circular_linked_list<Point>*>& hulls,
+                                         int low, int high) {
     if (high == low) {
         return hulls[high];
     }
-    vector<Point> left = mergeHulls(hulls, low, (low + high) / 2);
-    vector<Point> right = mergeHulls(hulls, (low + high) / 2 + 1, high);
+    circular_linked_list<Point>* left = mergeHulls(hulls, low, (low + high) / 2);
+    circular_linked_list<Point>* right = mergeHulls(hulls, (low + high) / 2 + 1, high);
+
     return merge(left, right);
 }
 
+circular_linked_list<Point>* merge(circular_linked_list<Point>* left,
+                                   circular_linked_list<Point>* right) {
+
+    circular_linked_list<Point>* left_right_most = left, *temp1, *temp2, *temp3, *temp4;
+    for (auto next = left->next; next->data.x > left_right_most->data.x; next = next->next) {
+        left_right_most = left_right_most->next;
+    }
+    temp1 = left_right_most;
+    temp2 = right;
+    temp3 = left_right_most;
+    temp4 = right;
+
+    for (; ;) {
+        if (findSide(temp1->data, temp2->data, temp1->prev->data) > 0) {
+            temp1 = temp1->prev;
+        } else if (findSide(temp1->data, temp2->data, temp2->next->data) > 0) {
+            temp2 = temp2->next;
+        } else {
+            break;
+        }
+    }
+    for (; ;) {
+        if (findSide(temp3->data, temp4->data, temp3->next->data) < 0) {
+            temp3 = temp3->next;
+        } else if (findSide(temp3->data, temp4->data, temp4->prev->data) < 0) {
+            temp4 = temp4->prev;
+        } else {
+            break;
+        }
+    }
+
+    temp1->next = temp2;
+    temp2->prev = temp1;
+    temp4->next = temp3;
+    temp3->prev = temp4;
+
+    //left->assert_valid_cll();
+    return left;
+}
 
 

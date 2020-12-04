@@ -16,13 +16,11 @@ target_link_libraries(partitionSpace PRIVATE ${MPI_CXX_LIBRARIES})
 
 #[[ link utils with executable ]]
 add_library(utils SHARED src/utils.c)
-target_link_libraries(utils PRIVATE ${MPI_CXX_LIBRARIES})
 #[[ link with utils ]]
 
-#[[ link utils with executable ]]
+#[[ link cll with executable ]]
 add_library(cll SHARED src/circular_linked_list.cpp)
-target_link_libraries(cll PRIVATE ${MPI_CXX_LIBRARIES})
-#[[ link with utils ]]
+#[[ link with cll ]]
 
 target_link_libraries(partitionSpace PRIVATE utils)
 target_link_libraries(partitionSpace PRIVATE cll)
