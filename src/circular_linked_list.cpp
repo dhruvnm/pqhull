@@ -15,7 +15,7 @@ void circular_linked_list<T>::insert_after(T val) {
     this->next->prev = next;
     next->prev = this;
     this->next = next;
-    assert_valid_cll();
+    //assert_valid_cll();
 }
 
 template<class T>
