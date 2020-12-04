@@ -17,8 +17,6 @@ using namespace std;
 
 void output_vector(const string filename, vector<Point> v);
 circular_linked_list<Point>* serial_quick_hull(vector<Point>& points);
-circular_linked_list<Point>*  mergeHulls(vector<circular_linked_list<Point>*>& hulls,
-                                         int low, int high);
 circular_linked_list<Point>*  merge(circular_linked_list<Point>*, circular_linked_list<Point>*);
 void qh_helper(vector<Point>& points, circular_linked_list<Point>* hull, Point P, Point Q);
 
@@ -30,6 +28,7 @@ int main(int argc, char **argv) {
     vector<MPI_Request> req;
     vector<MPI_Status> status;
     vector<Point> points;
+    vector<Point> my_points;
 
     parseArgs(argc, argv, &arg);
     if (arg.numPoints <= 0) {
@@ -78,7 +77,11 @@ int main(int argc, char **argv) {
             idx = (size * (points[i].x - low)) / (high - low);
             if (idx == size)
                 idx--;
-            pointsForProc[idx].push_back(points[i]);
+            if (idx == 0) {
+                my_points.push_back(points[i]);
+            } else {
+                pointsForProc[idx].push_back(points[i]);
+            }
         }
         for (int i = 1; i < size; ++i) {
             int count = pointsForProc[i].size();
@@ -87,55 +90,50 @@ int main(int argc, char **argv) {
         for (int i = 1; i < size; ++i) {
             MPI_Send(pointsForProc[i].data(), pointsForProc[i].size(), MPI_POINT, i, 0, MPI_COMM_WORLD);
         }
-    }
-    else {
+    } else {
         int num;
         MPI_Recv(&num, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status[rank]);
-        vector<Point> my_points(num);
-
+        my_points.resize(num);
         MPI_Recv(my_points.data(), num, MPI_POINT, 0, 0, MPI_COMM_WORLD, &status[rank]);
+    }
 
-        circular_linked_list<Point>* h = serial_quick_hull(my_points);
-        auto my_hull = h->cll_to_vector();
-
-        int count = my_hull.size();
-        MPI_Send(&count, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
-        MPI_Send(my_hull.data(), my_hull.size(), MPI_POINT, 0, 0, MPI_COMM_WORLD);
+    circular_linked_list<Point>* h = serial_quick_hull(my_points);
+    int copy_rank = rank;
+    int copy_size = size;
+    int shift = 1;
+    for (; ;) {
+        if (size == 1) {
+            break;
+        }
+        vector<Point> my_hull = h->cll_to_vector();
+        vector<Point> recv;
+        int count = my_hull.size(), num;
+        if (copy_rank % 2 == 1) {
+            MPI_Send(&count, 1, MPI_INT, rank - shift, 0, MPI_COMM_WORLD);
+            MPI_Send(my_hull.data(), my_hull.size(), MPI_POINT,
+                     rank - shift, 0, MPI_COMM_WORLD);
+            break;
+        }
+        MPI_Recv(&num, 1, MPI_INT, rank + shift, 0, MPI_COMM_WORLD, &status[rank]);
+        recv.resize(num);
+        MPI_Recv(recv.data(), num, MPI_POINT, rank + shift
+                 , 0, MPI_COMM_WORLD, &status[rank]);
+        h = merge(h, circular_linked_list<Point>::vector_to_cll(recv));
+        copy_rank /= 2;
+        size /= 2;
+        shift <<= 1;
     }
 
     if (rank == 0) {
-        vector<circular_linked_list<Point>*> hulls(size);
-        vector<int> hull_sizes(size);
-        vector<vector<Point>> vhulls(size);
-        ofstream time_file, hull_file;
-
-        hulls[0] = serial_quick_hull(pointsForProc[0]);
-
-        for (int i = 1; i < size; ++i) {
-            MPI_Irecv(&hull_sizes[i], 1, MPI_INT, i,
-                      0, MPI_COMM_WORLD, &req[i]);
-        }
-        for (int i = 1; i < size; ++i) {
-            MPI_Wait(&req[i], &status[i]);
-            vhulls[i].resize(hull_sizes[i]);
-        }
-
-        for (int i = 1; i < size; ++i) {
-            MPI_Irecv(vhulls[i].data(), vhulls[i].size(), MPI_POINT, i,
-                      0, MPI_COMM_WORLD, &req[i]);
-        }
-        for (int i = 1; i < size; ++i) {
-            MPI_Wait(&req[i], &status[i]);
-            hulls[i] = circular_linked_list<Point>::vector_to_cll(vhulls[i]);
-        }
-        circular_linked_list<Point>* final_hull = mergeHulls(hulls, 0, hulls.size() - 1);
+        ofstream time_file;
         time = MPI_Wtime() - time;
-
-        vector<Point> fl = final_hull->cll_to_vector();
-        time_file.open("partition_space_time_size_" + to_string(size));
+        vector<Point> fl = h->cll_to_vector();
+        time_file.open("pspace_time_size_" + to_string(copy_size));
         time_file << time << endl;
+        time_file.close();
         output_vector(arg.outFile, fl);
     }
+
     MPI_Finalize();
     return 0;
 }
@@ -214,16 +212,6 @@ void qh_helper(vector<Point>& points, circular_linked_list<Point>* hull, Point P
     }
     qh_helper(left, hull, P, *farthest);
     qh_helper(right, f, *farthest, Q);
-}
-
-circular_linked_list<Point>* mergeHulls(vector<circular_linked_list<Point>*>& hulls,
-                                         int low, int high) {
-    if (high == low) {
-        return hulls[high];
-    }
-    circular_linked_list<Point>* left = mergeHulls(hulls, low, (low + high) / 2);
-    circular_linked_list<Point>* right = mergeHulls(hulls, (low + high) / 2 + 1, high);
-    return merge(left, right);
 }
 
 circular_linked_list<Point>* merge(circular_linked_list<Point>* left,
