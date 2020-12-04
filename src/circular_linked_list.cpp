@@ -1,10 +1,4 @@
-
-struct circular_linked_list {
-    T data;
-    circular_linked_list<T> *next, *prev;
-    circular_linked_list(T data);
-    void insert_after(T next);
-};
+#include "circular_linked_list.hpp"
 
 circular_linked_list::circular_linked_list(T data) {
     this->data = data;

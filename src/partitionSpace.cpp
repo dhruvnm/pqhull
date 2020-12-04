@@ -9,7 +9,7 @@
 #include "processPool.h"
 #include <iostream>
 #include <fstream>
-#include <circular_linked_list.hpp>
+#include "circular_linked_list.hpp"
 
 MPI_Datatype MPI_POINT;
 
@@ -196,7 +196,7 @@ void qh_helper(vector<Point>& points, circular_linked_list<Point>* hull, Point P
             farthest = &points[i];
         }
     }
-    hull.push_back(*farthest);
+    hull->insert_after(*farthest);
     vector<Point> left, right;
     for (unsigned int i = 0; i < points.size(); ++i) {
         Point p = points[i];
