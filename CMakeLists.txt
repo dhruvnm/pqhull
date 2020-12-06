@@ -16,7 +16,7 @@ math(EXPR len "${len} - 1")
 add_library(cll SHARED src/circular_linked_list.cpp)
 
 add_library(utils SHARED src/utils.c)
-
+add_compile_options(-Wall -O3)
 
 foreach(val RANGE ${len})
     list(GET files ${val} file)
