@@ -290,6 +290,7 @@ void parseArgs(int argc, char **argv, struct Arguments* arg){
         {"numpoints", required_argument, 0,  'n' },
         {"debug",     no_argument,       0,  'd' },
         {"radius",    required_argument, 0,  'r' },
+        {"exp",       required_argument, 0,  'e' },
         {"min",       required_argument, 0,  '-' },
         {"max",       required_argument, 0,  '+' },
         {"serial",    no_argument,       0,  's' },
@@ -302,13 +303,14 @@ void parseArgs(int argc, char **argv, struct Arguments* arg){
 
     arg->debug = 0;
 
-    arg->radius = 10;
-    arg->min = -10;
-    arg->max = 10;
+    arg->radius = 0;
+    arg->min = 0;
+    arg->max = 0;
+    arg->exp = 0;
 
     arg->serial = 0;
 
-    while ((opt = getopt_long(argc, argv, "i:o:n:dr:s", long_opts, &long_idx)) != -1) {
+    while ((opt = getopt_long(argc, argv, "i:o:n:dr:e:s", long_opts, &long_idx)) != -1) {
         switch (opt) {
             case 'i' :
                 arg->inFile = optarg;
@@ -330,6 +332,9 @@ void parseArgs(int argc, char **argv, struct Arguments* arg){
                 break;
             case '+' :
                 arg->max = atoi(optarg);
+                break;
+            case 'e' :
+                arg->exp = atof(optarg);
                 break;
             case 's' :
                 arg->serial = 1;
