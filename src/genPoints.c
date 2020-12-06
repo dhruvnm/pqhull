@@ -22,6 +22,15 @@ struct Point randDisk(int maxRadius) {
     return  p;
 }
 
+struct Point randExp(double lambda) {
+    struct Point p;
+    double u = rand() / (RAND_MAX + 1.0);
+    double v = rand() / (RAND_MAX + 1.0);
+    p.x = -log(1-u) / lambda;
+    p.y = -log(1-v) / lambda;
+    return p;
+}
+
 int main(int argc, char **argv) {
     struct Arguments arg;
     struct Point* points;
@@ -44,6 +53,11 @@ int main(int argc, char **argv) {
     for (i = 0; i < arg.numPoints; i++) {
         points[i] = randDisk(arg.radius);
     }
+
+    // Exponential points
+    // for (i = 0; i < arg.numPoints; i++) {
+    //     points[i] = randExp(1.0);
+    // }
 
     //Save points to file
     writePointArrayToFile(arg.outFile, points, arg.numPoints);
