@@ -57,5 +57,5 @@ void circular_linked_list<T>::assert_valid_cll() {
 
 
 /* explicit instantiation */
-template class circular_linked_list<Point>;
+template struct circular_linked_list<Point>;
 
