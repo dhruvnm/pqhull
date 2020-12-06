@@ -15,6 +15,7 @@ struct Arguments {
     int radius;
     int min;
     int max;
+    double exp;
 
     int serial; // Should the program be run without MPI
 };

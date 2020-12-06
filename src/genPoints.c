@@ -22,6 +22,15 @@ struct Point randDisk(int maxRadius) {
     return  p;
 }
 
+struct Point randRect(int min, int max){
+    struct Point p;
+
+    p.x = randFrom(min, max);
+    p.y = randFrom(min, max);
+
+    return p;
+}
+
 struct Point randExp(double lambda) {
     struct Point p;
     double u = rand() / (RAND_MAX + 1.0);
@@ -51,7 +60,13 @@ int main(int argc, char **argv) {
     //Generate random points
     srand(time(NULL));
     for (i = 0; i < arg.numPoints; i++) {
-        points[i] = randDisk(arg.radius);
+        if (arg.radius > 0) {
+            points[i] = randDisk(arg.radius);
+        } else if (arg.min > 0 && arg.max > 0) {
+            points[i] = randRect(arg.min, arg.max);
+        } else if (arg.exp > 0) {
+            points[i] = randExp(arg.exp);
+        }
     }
 
     // Exponential points
