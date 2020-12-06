@@ -1,5 +1,6 @@
 #include "circular_linked_list.hpp"
 #include "utils.h"
+#include <cassert>
 
 template<class T>
 circular_linked_list<T>::circular_linked_list(T data) {
