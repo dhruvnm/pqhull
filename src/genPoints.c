@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
     for (i = 0; i < arg.numPoints; i++) {
         if (arg.radius > 0) {
             points[i] = randDisk(arg.radius);
-        } else if (arg.min > 0 && arg.max > 0) {
+        } else if (arg.min < 0 && arg.max > 0) {
             points[i] = randRect(arg.min, arg.max);
         } else if (arg.exp > 0) {
             points[i] = randExp(arg.exp);
