@@ -7,3 +7,6 @@ forkJoin
 !sbatch.sh
 slurm*
 *.o
+
+.ccls-cache/
+.git/
