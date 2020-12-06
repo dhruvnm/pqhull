@@ -1,7 +1,9 @@
 genPoints
 parallelSearch
 processPool
+partitionSpace
+forkJoin
 *.sh
 !sbatch.sh
 slurm*
-forkJoin
+*.o
