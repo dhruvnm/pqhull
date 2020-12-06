@@ -9,6 +9,7 @@
 #include "processPool.h"
 #include <iostream>
 #include <fstream>
+#include <iomanip>
 #include "circular_linked_list.hpp"
 
 MPI_Datatype MPI_POINT;
@@ -105,7 +106,10 @@ int main(int argc, char **argv) {
         if (size == 1) {
             break;
         }
-        vector<Point> my_hull = h->cll_to_vector();
+        vector<Point> my_hull;
+        if (h) {
+            my_hull = h->cll_to_vector();
+        }
         vector<Point> recv;
         int count = my_hull.size(), num;
         if (copy_rank % 2 == 1) {
@@ -216,7 +220,10 @@ void qh_helper(vector<Point>& points, circular_linked_list<Point>* hull, Point P
 
 circular_linked_list<Point>* merge(circular_linked_list<Point>* left,
                                    circular_linked_list<Point>* right) {
-
+    if (!left)
+        return right;
+    if (!right)
+        return left;
     circular_linked_list<Point>* left_right_most = left, *temp1, *temp2, *temp3, *temp4;
     for (auto next = left->next; next->data.x > left_right_most->data.x; next = next->next) {
         left_right_most = left_right_most->next;

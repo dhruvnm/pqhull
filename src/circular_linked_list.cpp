@@ -31,6 +31,9 @@ std::vector<T> circular_linked_list<T>::cll_to_vector() {
 
 template<class T>
 circular_linked_list<T>* circular_linked_list<T>::vector_to_cll(std::vector<T> v) {
+    if (v.empty()) {
+        return nullptr;
+    }
     circular_linked_list<T>* out = new circular_linked_list<Point>(v[0]);
     auto temp = out;
     for (int i = 1; i < v.size(); ++i) {
