@@ -30,10 +30,5 @@ endforeach()
 
 target_link_libraries(partitionSpace PRIVATE cll)
 
-#[[ link utils with executable ]]
-#[[ link with utils ]]
-
-#[[ link cll with executable ]]
-#[[ link with cll ]]
 
 
