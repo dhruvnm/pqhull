@@ -147,6 +147,6 @@ void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, in
         }
     } else {
         quickHull(points, n, p1, newPD.point, findSide(newPD.point, p1, p2));
-        quickHull(points, n, newPD.point, p2, -findSide(newPD.point, p2, p1));
+        quickHull(points, n, newPD.point, p2, findSide(newPD.point, p1, p2));
     }
 }
