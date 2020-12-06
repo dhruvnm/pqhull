@@ -1,7 +1,7 @@
 CC=mpicxx
 CFLAGS=-Wall -O3
 DEPS=utils.h utils.c
-PROG=genPoints parallelSearch processPool
+PROG=genPoints parallelSearch processPool forkJoin
 
 VPATH=src
 

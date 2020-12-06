@@ -4,3 +4,4 @@ processPool
 *.sh
 !sbatch.sh
 slurm*
+forkJoin
