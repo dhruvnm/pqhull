@@ -140,18 +140,18 @@ void PointCloud::work() {
 void PointCloud::cancel(int calls) {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    if (calls <= 0) {
-        return;
+
+    while (calls > 0) {
+        int dest = rank + (1 << (calls-1));
+        MPI_Send(&rank, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);  // Parent
+
+        MPI_Send(&calls, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
+
+        int size = -1;
+        MPI_Send(&size, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
+
+        calls--;
     }
-
-
-    int dest = rank + (1 << (calls-1));
-    MPI_Send(&rank, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);  // Parent
-
-    MPI_Send(&calls, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
-
-    int size = -1;
-    MPI_Send(&size, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
 }
 
 std::vector<Point> PointCloud::delegateQP(const std::vector<int> &indices, Point P, Point C, Point Q, int calls) {
