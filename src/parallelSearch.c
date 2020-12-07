@@ -110,6 +110,7 @@ int main(int argc, char **argv) {
             side2_i++;
         }
     }
+    free(points);
 
     quickHull(side1, side1_i, min, max, 1);
     quickHull(side2, side2_i, max, min, 1);
@@ -129,7 +130,8 @@ int main(int argc, char **argv) {
 
 void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, int side){
     struct PointDistance pd, newPD;
-    int i, sp;
+    struct Point *side1, *side2;
+    int i, sp, side1_i, side2_i;
     double dist, maxDist = -1;
 
     sp = -1;
@@ -161,7 +163,21 @@ void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, in
             hull = insertBefore(hull, p1);
         }
     } else {
-        quickHull(points, n, p1, newPD.point, findSide(newPD.point, p1, p2));
-        quickHull(points, n, newPD.point, p2, findSide(newPD.point, p1, p2));
+        side1 = (struct Point*) malloc(n * sizeof(struct Point));
+        side2 = (struct Point*) malloc(n * sizeof(struct Point));
+        side1_i = 0;
+        side2_i = 0;
+        for (i = 0; i < n; i++) {
+            if(findSide(p1, newPD.point, points[i]) == 1){
+                side1[side1_i] = points[i];
+                side1_i++;
+            } else if(findSide(newPD.point, p2, points[i]) == 1){
+                side2[side2_i] = points[i];
+                side2_i++;
+            }
+        }
+        free(points);
+        quickHull(side1, side1_i, p1, newPD.point, findSide(newPD.point, p1, p2));
+        quickHull(side2, side2_i, newPD.point, p2, findSide(newPD.point, p1, p2));
     }
 }
