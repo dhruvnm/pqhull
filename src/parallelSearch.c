@@ -5,7 +5,7 @@
 #include "utils.h"
 #include "mpi.h"
 
-void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, int side);
+void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, int side, int serial);
 
 // Custom MPI datatypes & functions
 MPI_Datatype MPI_POINT;
@@ -112,9 +112,15 @@ int main(int argc, char **argv) {
     }
     free(points);
 
-    quickHull(side1, side1_i, min, max, 1);
-    quickHull(side2, side2_i, max, min, 1);
+    printf("> %d %d %d\n", dataSize, side1_i, side2_i);
+    quickHull(side1, side1_i, min, max, 1, arg.serial);
+    quickHull(side2, side2_i, max, min, 1, arg.serial);
 
+    double delta;
+
+    delta = MPI_Wtime() - time;
+
+    printf("TIME: %.6f s %d\n", delta, mpiRank);
     //End Time
     if(arg.serial){
         endTimeSingle(time);
@@ -128,9 +134,10 @@ int main(int argc, char **argv) {
     }
 }
 
-void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, int side){
+void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, int side, int serial){
     struct PointDistance pd, newPD;
-    struct Point *side1, *side2;
+    struct Point *side1, *side2, *newPoints;
+    int *length = NULL, *offset = NULL;
     int i, sp, side1_i, side2_i;
     double dist, maxDist = -1;
 
@@ -143,6 +150,7 @@ void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, in
         }
     }
 
+    pd.n = n;
     if (sp < 0) {
         pd.valid = 0;
         pd.dist = 0;
@@ -152,10 +160,40 @@ void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, in
         pd.dist = maxDist;
     }
 
-    if(arg.serial) {
+    if(serial) {
         newPD = pd;
     } else {
         MPI_Allreduce(&pd, &newPD, 1, MPI_POINT_DISTANCE, MPI_POINT_DISTANCE_MAX, MPI_COMM_WORLD);
+        if (newPD.n < (mpiSize * 2<<12) && mpiSize > 1){
+           //  if (mpiRank == 0) {
+           //      newPoints = (struct Point*) malloc(newPD.n * sizeof(struct Point));
+           //      length = (int*) malloc(mpiSize * sizeof(int));
+           //      offset = (int*) malloc(mpiSize * sizeof(int));
+           //  }
+           //  printf("<<<<%d\n", n);
+           //  MPI_Gather(&n, 1, MPI_INT, length, 1, MPI_INT, 0, MPI_COMM_WORLD);
+           //  if (mpiRank == 0) {
+           //      for (i = 0; i < mpiSize; i++) {
+           //          if (i == 0){
+           //              offset[i] = 0;
+           //          } else {
+           //              offset[i] = offset[i-1]+length[i-1];
+           //          }
+           //      printf(">>>>%d %d\n", length[i], offset[i]);
+           //      }
+           //  }
+           //  MPI_Gatherv(points, n, MPI_POINT, newPoints, (const int*) length, (const int*) offset, MPI_POINT, 0, MPI_COMM_WORLD);
+           //  if (mpiRank == 0) {
+           //      free(offset);
+           //      free(length);
+           //      free(points);
+           //      points = newPoints;
+           //      serial = 1;
+           //  } else {
+           //      return;
+           //  }
+
+        }
     }
 
     if (!newPD.valid) {
@@ -177,7 +215,8 @@ void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, in
             }
         }
         free(points);
-        quickHull(side1, side1_i, p1, newPD.point, findSide(newPD.point, p1, p2));
-        quickHull(side2, side2_i, newPD.point, p2, findSide(newPD.point, p1, p2));
+        printf("> %d %d %d\n", n, side1_i, side2_i);
+        quickHull(side1, side1_i, p1, newPD.point, findSide(newPD.point, p1, p2), serial);
+        quickHull(side2, side2_i, newPD.point, p2, findSide(newPD.point, p1, p2), serial);
     }
 }
