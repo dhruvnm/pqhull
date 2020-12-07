@@ -164,8 +164,9 @@ void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, in
                 offset = (int*) malloc(mpiSize * sizeof(int));
             }
             MPI_Gather(&n, 1, MPI_INT, length, 1, MPI_INT, 0, MPI_COMM_WORLD);
-            newN = 0;
+
             if (mpiRank == 0) {
+                newN = 0;
                 for (i = 0; i < mpiSize; i++) {
                     newN += length[i];
                     if (i == 0){
@@ -173,7 +174,7 @@ void quickHull(struct Point* points, int n, struct Point p1, struct Point p2, in
                     } else {
                         offset[i] = offset[i-1]+length[i-1];
                     }
-               }
+                }
             }
             MPI_Gatherv(points, n, MPI_POINT, newPoints, (const int*) length, (const int*) offset, MPI_POINT, 0, MPI_COMM_WORLD);
             if (mpiRank == 0) {
