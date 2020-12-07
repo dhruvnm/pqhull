@@ -19,8 +19,8 @@ struct LinkedPoint* hull = NULL;
 int mpiRank, mpiSize;
 
 int main(int argc, char **argv) {
-    struct Point *allPoints, *points, min, max;
-    int i, min_i, max_i, dataSize;
+    struct Point *allPoints, *points, *side1, *side2, min, max;
+    int i, min_i, max_i, dataSize, side1_i, side2_i;
     double time;
 
     // Parse Arguments
@@ -63,10 +63,13 @@ int main(int argc, char **argv) {
     if(arg.serial){
         dataSize = arg.numPoints;
         points = allPoints;
+        points = allPoints;
     } else {
         dataSize = arg.numPoints / mpiSize;
         points = (struct Point*) malloc(dataSize * sizeof(struct Point));
     }
+    side1 = (struct Point*) malloc(dataSize * sizeof(struct Point));
+    side2 = (struct Point*) malloc(dataSize * sizeof(struct Point));
 
     //Being Logic
     startTime(&time);
@@ -96,8 +99,20 @@ int main(int argc, char **argv) {
         MPI_Allreduce(&points[max_i], &max, 1, MPI_POINT, MPI_POINT_X_MAX, MPI_COMM_WORLD);
     }
 
-    quickHull(points, dataSize, min, max, 1);
-    quickHull(points, dataSize, max, min, 1);
+    side1_i = 0;
+    side2_i = 0;
+    for (i = 0; i < dataSize; i++) {
+        if(findSide(min, max, points[i]) == 1){
+            side1[side1_i] = points[i];
+            side1_i++;
+        } else {
+            side2[side2_i] = points[i];
+            side2_i++;
+        }
+    }
+
+    quickHull(side1, side1_i, min, max, 1);
+    quickHull(side2, side2_i, max, min, 1);
 
     //End Time
     if(arg.serial){

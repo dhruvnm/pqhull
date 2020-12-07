@@ -130,6 +130,7 @@ int main(int argc, char **argv) {
 
     if (rank == 0) {
         ofstream time_file;
+        endTimeSingle(time);
         time = MPI_Wtime() - time;
         vector<Point> fl = h->cll_to_vector();
         time_file.open("pspace_time_size_" + to_string(copy_size));
@@ -260,5 +261,3 @@ circular_linked_list<Point>* merge(circular_linked_list<Point>* left,
     //left->assert_valid_cll();
     return left;
 }
-
-

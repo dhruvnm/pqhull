@@ -1,58 +1,78 @@
 #!/bin/bash -l
 
 #SBATCH -N 2
-#SBATCH -t 00:10
+#SBATCH -t 00:40
 #SBATCH --constraint=rhel8
 
 #module load openmpi/gcc
+N_POINTS=16384
+# N_POINTS=65536
+# N_POINTS=1048576
+# N_POINTS=16777216
 
-N_POINTS=262144
-INPUT=testinput/n262144-disk-r10.txt
-
-N_POINTS=16385
-INPUT=testinput/n16385-disk-r10.txt
-
-N_POINTS=65536
-INPUT=testinput/n65536-disk-r10.txt
-
-N_POINTS=4096
-INPUT=testinput/n4096-disk-r10.txt
-
-DIST=disk_r10
+DIST=disk-r100
+# DIST=rect-l100
+# DIST=exp-e.01
 N_PROCESSES=1
-mkdir n${N_POINTS}_p${N_PROCESSES}_${DIST}
-./parallelSearch -s -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_serial.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}_serial.times"
-mpirun --mca mpi_cuda_support 0 -np $N_POINTS         ./parallelSearch -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_parallelSearch.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/parallelSearch"
-mpirun --mca mpi_cuda_support 0 -np $((N_POINTS + 2)) ./processPool    -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_processPool.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/processPools"
-mpirun --mca mpi_cuda_support 0 -np $N_POINTS         ./partitionSpace -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_partitionSpace.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/partitionSpace"
-mpirun --mca mpi_cuda_support 0 -np $N_POINTS         ./forkJoin       -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_forkJoin.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/forkJoin"
+INPUT=experimentalinput/n$N_POINTS-$DIST.txt
+mkdir n${N_POINTS}_${DIST}
+echo "Serial"
+./parallelSearch -s -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_serial.txt" >> "n${N_POINTS}_${DIST}/serial.times"
+echo "Parallel"
+mpirun --mca mpi_cuda_support 0 -np $N_PROCESSES         ./parallelSearch -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_parallelSearch.txt" >> "n${N_POINTS}_${DIST}/parallelSearch"
+echo "Process Pool"
+# mpirun --mca mpi_cuda_support 0 -np $((N_PROCESSES + 2)) ./processPool    -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_processPool.txt" >> "n${N_POINTS}_${DIST}/processPools"
+echo "Partition Space"
+mpirun --mca mpi_cuda_support 0 -np $N_PROCESSES         ./partitionSpace -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_partitionSpace.txt" >> "n${N_POINTS}_${DIST}/partitionSpace"
+echo "Fork Join"
+mpirun --mca mpi_cuda_support 0 -np $N_PROCESSES         ./forkJoin       -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_forkJoin.txt" >> "n${N_POINTS}_${DIST}/forkJoin"
+
 N_PROCESSES=2
-./parallelSearch -s -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_serial.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}_serial.times"
-mpirun --mca mpi_cuda_support 0 -np $N_POINTS         ./parallelSearch -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_parallelSearch.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/parallelSearch"
-mpirun --mca mpi_cuda_support 0 -np $((N_POINTS + 2)) ./processPool    -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_processPool.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/processPools"
-mpirun --mca mpi_cuda_support 0 -np $N_POINTS         ./partitionSpace -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_partitionSpace.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/partitionSpace"
-mpirun --mca mpi_cuda_support 0 -np $N_POINTS         ./forkJoin       -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_forkJoin.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/forkJoin"
+echo "Parallel"
+mpirun --mca mpi_cuda_support 0 -np $N_PROCESSES         ./parallelSearch -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_parallelSearch.txt" >> "n${N_POINTS}_${DIST}/parallelSearch"
+echo "Process Pool"
+mpirun --mca mpi_cuda_support 0 -np $((N_PROCESSES + 2)) ./processPool    -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_processPool.txt" >> "n${N_POINTS}_${DIST}/processPools"
+echo "Partition Space"
+mpirun --mca mpi_cuda_support 0 -np $N_PROCESSES         ./partitionSpace -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_partitionSpace.txt" >> "n${N_POINTS}_${DIST}/partitionSpace"
+echo "Fork Join"
+mpirun --mca mpi_cuda_support 0 -np $N_PROCESSES         ./forkJoin       -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_forkJoin.txt" >> "n${N_POINTS}_${DIST}/forkJoin"
+
 N_PROCESSES=4
-./parallelSearch -s -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_serial.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}_serial.times"
-mpirun --mca mpi_cuda_support 0 -np $N_POINTS         ./parallelSearch -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_parallelSearch.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/parallelSearch"
-mpirun --mca mpi_cuda_support 0 -np $((N_POINTS + 2)) ./processPool    -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_processPool.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/processPools"
-mpirun --mca mpi_cuda_support 0 -np $N_POINTS         ./partitionSpace -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_partitionSpace.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/partitionSpace"
-mpirun --mca mpi_cuda_support 0 -np $N_POINTS         ./forkJoin       -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_forkJoin.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/forkJoin"
+echo "Parallel"
+mpirun --mca mpi_cuda_support 0 -np $N_PROCESSES         ./parallelSearch -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_parallelSearch.txt" >> "n${N_POINTS}_${DIST}/parallelSearch"
+echo "Process Pool"
+mpirun --mca mpi_cuda_support 0 -np $((N_PROCESSES + 2)) ./processPool    -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_processPool.txt" >> "n${N_POINTS}_${DIST}/processPools"
+echo "Partition Space"
+mpirun --mca mpi_cuda_support 0 -np $N_PROCESSES         ./partitionSpace -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_partitionSpace.txt" >> "n${N_POINTS}_${DIST}/partitionSpace"
+echo "Fork Join"
+mpirun --mca mpi_cuda_support 0 -np $N_PROCESSES         ./forkJoin       -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_forkJoin.txt" >> "n${N_POINTS}_${DIST}/forkJoin"
+
 N_PROCESSES=8
-./parallelSearch -s -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_serial.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}_serial.times"
-mpirun --mca mpi_cuda_support 0 -np $N_POINTS         ./parallelSearch -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_parallelSearch.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/parallelSearch"
-mpirun --mca mpi_cuda_support 0 -np $((N_POINTS + 2)) ./processPool    -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_processPool.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/processPools"
-mpirun --mca mpi_cuda_support 0 -np $N_POINTS         ./partitionSpace -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_partitionSpace.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/partitionSpace"
-mpirun --mca mpi_cuda_support 0 -np $N_POINTS         ./forkJoin       -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_forkJoin.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/forkJoin"
+echo "Parallel"
+mpirun --mca mpi_cuda_support 0 -np $N_PROCESSES         ./parallelSearch -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_parallelSearch.txt" >> "n${N_POINTS}_${DIST}/parallelSearch"
+echo "Process Pool"
+mpirun --mca mpi_cuda_support 0 -np $((N_PROCESSES + 2)) ./processPool    -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_processPool.txt" >> "n${N_POINTS}_${DIST}/processPools"
+echo "Partition Space"
+mpirun --mca mpi_cuda_support 0 -np $N_PROCESSES         ./partitionSpace -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_partitionSpace.txt" >> "n${N_POINTS}_${DIST}/partitionSpace"
+echo "Fork Join"
+mpirun --mca mpi_cuda_support 0 -np $N_PROCESSES         ./forkJoin       -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_forkJoin.txt" >> "n${N_POINTS}_${DIST}/forkJoin"
+
 N_PROCESSES=16
-./parallelSearch -s -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_serial.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}_serial.times"
-mpirun --mca mpi_cuda_support 0 -np $N_POINTS         ./parallelSearch -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_parallelSearch.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/parallelSearch"
-mpirun --mca mpi_cuda_support 0 -np $((N_POINTS + 2)) ./processPool    -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_processPool.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/processPools"
-mpirun --mca mpi_cuda_support 0 -np $N_POINTS         ./partitionSpace -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_partitionSpace.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/partitionSpace"
-mpirun --mca mpi_cuda_support 0 -np $N_POINTS         ./forkJoin       -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_forkJoin.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/forkJoin"
+echo "Parallel"
+mpirun --mca mpi_cuda_support 0 -np $N_PROCESSES         ./parallelSearch -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_parallelSearch.txt" >> "n${N_POINTS}_${DIST}/parallelSearch"
+echo "Process Pool"
+mpirun --mca mpi_cuda_support 0 -np $((N_PROCESSES + 2)) ./processPool    -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_processPool.txt" >> "n${N_POINTS}_${DIST}/processPools"
+echo "Partition Space"
+mpirun --mca mpi_cuda_support 0 -np $N_PROCESSES         ./partitionSpace -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_partitionSpace.txt" >> "n${N_POINTS}_${DIST}/partitionSpace"
+echo "Fork Join"
+mpirun --mca mpi_cuda_support 0 -np $N_PROCESSES         ./forkJoin       -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_forkJoin.txt" >> "n${N_POINTS}_${DIST}/forkJoin"
+
 N_PROCESSES=32
-./parallelSearch -s -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_serial.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}_serial.times"
-mpirun --mca mpi_cuda_support 0 -np $N_POINTS         ./parallelSearch -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_parallelSearch.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/parallelSearch"
-mpirun --mca mpi_cuda_support 0 -np $((N_POINTS + 2)) ./processPool    -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_processPool.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/processPools"
-mpirun --mca mpi_cuda_support 0 -np $N_POINTS         ./partitionSpace -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_partitionSpace.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/partitionSpace"
-mpirun --mca mpi_cuda_support 0 -np $N_POINTS         ./forkJoin       -n $N_POINTS -i $INPUT -o "n${N_POINTS}_p${N_PROCESSES}_${DIST}_forkJoin.txt" >> "n${N_POINTS}_p${N_PROCESSES}_${DIST}/forkJoin"
+echo "Parallel"
+mpirun --mca mpi_cuda_support 0 -np $N_PROCESSES         ./parallelSearch -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_parallelSearch.txt" >> "n${N_POINTS}_${DIST}/parallelSearch"
+echo "Process Pool"
+mpirun --mca mpi_cuda_support 0 -np $((N_PROCESSES + 2)) ./processPool    -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_processPool.txt" >> "n${N_POINTS}_${DIST}/processPools"
+echo "Partition Space"
+mpirun --mca mpi_cuda_support 0 -np $N_PROCESSES         ./partitionSpace -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_partitionSpace.txt" >> "n${N_POINTS}_${DIST}/partitionSpace"
+echo "Fork Join"
+mpirun --mca mpi_cuda_support 0 -np $N_PROCESSES         ./forkJoin       -n $N_POINTS -i $INPUT -o "n${N_POINTS}_${DIST}_forkJoin.txt" >> "n${N_POINTS}_${DIST}/forkJoin"
