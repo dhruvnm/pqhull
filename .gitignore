@@ -3,6 +3,7 @@ parallelSearch
 processPool
 partitionSpace
 forkJoin
+!experimentalresults/**/*
 *.sh
 !sbatch.sh
 slurm*
