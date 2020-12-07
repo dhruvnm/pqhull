@@ -42,6 +42,7 @@ struct PointDistance {
     struct Point point;
     double dist;
     int valid;
+    int n;
 };
 
 /******************************************************************************/

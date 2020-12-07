@@ -78,16 +78,17 @@ void define_MPI_LINKED_POINT(MPI_Datatype* MPI_LINKED_POINT){
 /******************************************************************************/
 void define_MPI_POINT_DISTANCE(MPI_Datatype* MPI_POINT_DISTANCE){
     //Collect necessary data for MPI
-    int numFields = 4;
-    int fieldLengths[4] = {1,1,1,1};
-    MPI_Aint fieldOffsets[4];
-    MPI_Datatype fieldTypes[4] = {MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT};
+    int numFields = 5;
+    int fieldLengths[5] = {1,1,1,1,1};
+    MPI_Aint fieldOffsets[5];
+    MPI_Datatype fieldTypes[5] = {MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT, MPI_INT};
 
     //Fill field offsets with correct values
     fieldOffsets[0] = offsetof(struct PointDistance, point) + offsetof(struct Point, x);
     fieldOffsets[1] = offsetof(struct PointDistance, point) + offsetof(struct Point, y);
     fieldOffsets[2] = offsetof(struct PointDistance, dist);
     fieldOffsets[3] = offsetof(struct PointDistance, valid);
+    fieldOffsets[4] = offsetof(struct PointDistance, n);
 
     //Submit info to MPI
     MPI_Type_create_struct(numFields, fieldLengths, fieldOffsets, fieldTypes, MPI_POINT_DISTANCE);
@@ -96,11 +97,11 @@ void define_MPI_POINT_DISTANCE(MPI_Datatype* MPI_POINT_DISTANCE){
 
 void define_MPI_POINT_DISTANCE_MAX(struct PointDistance *in, struct PointDistance *out, int *len, MPI_Datatype *typeptr){
     struct PointDistance *pda, *pdb;
-    int i = 0;
+    int i = 0, n = 0;
 
     pda = (struct PointDistance*) in;
     pdb = (struct PointDistance*) out;
-
+    n = pda[i].n + pdb[i].n;
     if (*len != 1){
         printf("Warning: this function may not work for lengths != 1\n");
     }
@@ -119,6 +120,7 @@ void define_MPI_POINT_DISTANCE_MAX(struct PointDistance *in, struct PointDistanc
             }
         }
     }
+    pdb[i].n = n;
 }
 
 /******************************************************************************/
