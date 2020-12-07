@@ -22,6 +22,7 @@ struct PointCloud {
     std::vector<Point> qpHelper(const std::vector<int> &indices, Point P, Point Q, int calls);
 
     std::vector<Point> spliceHulls(const std::vector<Point> &hullA, const std::vector<Point> &hullB);
+    void cancel(int calls);
 };
 
 int main(int argc, char **argv) {
@@ -73,7 +74,12 @@ int main(int argc, char **argv) {
 }
 
 std::vector<Point> PointCloud::quickHull() {
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    int calls = log2(size);
     if (this->points.size() <= 3) {
+        cancel(calls);
         return this->points;
     }
 
@@ -95,11 +101,6 @@ std::vector<Point> PointCloud::quickHull() {
         indices.push_back(i);
     }
 
-    int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-    int calls = log2(size);
-
     return this->delegateQP(indices, L, R, L, calls);
 }
 
@@ -107,8 +108,17 @@ void PointCloud::work() {
     int parent;
     MPI_Recv(&parent, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+    int calls;
+    MPI_Recv(&calls, 1, MPI_POINT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    calls--;
+
     int len;
     MPI_Recv(&len, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    if (len==-1) {
+        cancel(calls);
+        return;
+    }
 
     std::vector<int> indices;
     indices.resize(len);
@@ -118,9 +128,6 @@ void PointCloud::work() {
     MPI_Recv(&P, 1, MPI_POINT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     MPI_Recv(&Q, 1, MPI_POINT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-    int calls;
-    MPI_Recv(&calls, 1, MPI_POINT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    calls--;
 
 
     auto hull = this->qpHelper(indices, P, Q, calls);
@@ -128,6 +135,23 @@ void PointCloud::work() {
     len = hull.size();
     MPI_Send(&len, 1, MPI_INT, parent, 0, MPI_COMM_WORLD);
     MPI_Send(&hull[0], len, MPI_POINT, parent, 0, MPI_COMM_WORLD);
+}
+
+void PointCloud::cancel(int calls) {
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    if (calls <= 0) {
+        return;
+    }
+
+
+    int dest = rank + (1 << (calls-1));
+    MPI_Send(&rank, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);  // Parent
+
+    MPI_Send(&calls, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
+
+    int size = -1;
+    MPI_Send(&size, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
 }
 
 std::vector<Point> PointCloud::delegateQP(const std::vector<int> &indices, Point P, Point C, Point Q, int calls) {
@@ -156,6 +180,8 @@ std::vector<Point> PointCloud::delegateQP(const std::vector<int> &indices, Point
 
         MPI_Send(&rank, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);  // Parent
 
+        MPI_Send(&calls, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
+
         int size = B_indices.size();
         MPI_Send(&size, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
 
@@ -163,7 +189,6 @@ std::vector<Point> PointCloud::delegateQP(const std::vector<int> &indices, Point
 
         MPI_Send(&C, 1, MPI_POINT, dest, 0, MPI_COMM_WORLD);
         MPI_Send(&Q, 1, MPI_POINT, dest, 0, MPI_COMM_WORLD);
-        MPI_Send(&calls, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
 
         A_hull = this->qpHelper(A_indices, P, C, calls - 1);
 
@@ -188,7 +213,11 @@ std::vector<Point> PointCloud::spliceHulls(const std::vector<Point> &hullA, cons
 }
 
 std::vector<Point> PointCloud::qpHelper(const std::vector<int> &indices, Point P, Point Q, int calls) {
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
     if (indices.size() == 0) {
+        cancel(calls);
         std::vector<Point> hull;
         hull.push_back(Q);
         hull.push_back(P);
