@@ -172,11 +172,11 @@ void processManager(int total) {
                 ret_proc = proc_stack[proc_num - 1];
                 proc_num--;
                 MPI_Isend(&ret_proc, 1, MPI_INT, proc_stat.MPI_SOURCE, PROCESS, MPI_COMM_WORLD, &proc_req);
-                MPI_Request_free(&proc_req);
+                MPI_Wait(&proc_req, &proc_stat);
             } else {
                 // No processes available
                 MPI_Isend(NULL, 0, MPI_INT, proc_stat.MPI_SOURCE, PROCESS, MPI_COMM_WORLD, &proc_req);
-                MPI_Request_free(&proc_req);
+                MPI_Wait(&proc_req, &proc_stat);
             }
         } else {
             // Process Return
@@ -242,7 +242,7 @@ void quickHull(LinkedPoint *points, int n, LinkedPoint P, LinkedPoint Q, Mode m,
         retBuf[2] = Q.index;
 
         MPI_Isend(retBuf, 3, MPI_INT, 0, HULL_POINT, MPI_COMM_WORLD, &req);
-        MPI_Request_free(&req);
+        MPI_Wait(&req, &stat);
 
         // Split pointsets
         PC = (LinkedPoint *)malloc((n+2) * sizeof(struct LinkedPoint));
@@ -263,7 +263,7 @@ void quickHull(LinkedPoint *points, int n, LinkedPoint P, LinkedPoint Q, Mode m,
 
         // Request a new proc
         MPI_Isend(NULL, 0, MPI_INT, 1, PROCESS, MPI_COMM_WORLD, &req);
-        MPI_Request_free(&req);
+        MPI_Wait(&req, &stat);
         MPI_Irecv(&newProc, 1, MPI_INT, 1, PROCESS, MPI_COMM_WORLD, &req);
         MPI_Wait(&req, &stat);
         MPI_Get_count(&stat, MPI_INT, &p_count);
@@ -277,7 +277,7 @@ void quickHull(LinkedPoint *points, int n, LinkedPoint P, LinkedPoint Q, Mode m,
             PC[l] = P;
             PC[l+1] = C;
             MPI_Isend(&l, 1, MPI_INT, newProc, BUF_SIZE, MPI_COMM_WORLD, &req);
-            MPI_Request_free(&req);
+            MPI_Wait(&req, &stat);
             MPI_Isend(PC, l+2, MPI_LINKED_POINT, newProc, FUNC_CALL, MPI_COMM_WORLD, &req);
             quickHull(CQ, r, C, Q, RECURSIVE, rank);
             MPI_Wait(&req, &stat);
@@ -291,7 +291,7 @@ void quickHull(LinkedPoint *points, int n, LinkedPoint P, LinkedPoint Q, Mode m,
     if (m == MESSAGE) {
         // Send proc back
         MPI_Isend(&rank, 1, MPI_INT, 1, PROCESS, MPI_COMM_WORLD, &req);
-        MPI_Request_free(&req);
+        MPI_Wait(&req, &stat);
         // Call itself in message mode
         quickHull(NULL, 0, P, P, MESSAGE, rank);
     }
