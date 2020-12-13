@@ -6,27 +6,27 @@ Parallel Quickhull
 run `make` in current directory
 
 ## Generate Input
-###Uniform Disk 
+### Uniform Disk 
 `./genPoints -n <number of points> -o <outfile> -r 100`
     
-###Uniform Rectangle 
+### Uniform Rectangle 
 `./genPoints -n <number of points> -o <outfile> --min -50 --max 50`
 
-###Exponential 
+### Exponential 
 `./genPoints -n <number of points> -o <outfile> -e 100`
 
 ## Running Implementations
-###Serial 
+### Serial 
 `./parallelSearch -s -n <number of points> -i <input file> -o <outfile>`
 
-###ParallelSearch 
+### ParallelSearch 
 `mpirun --mca mpi_cuda_support 0 -np <number of processes> ./parallelSearch -s -n <number of points> -i <input file> -o <outfile>`
 
-###ProcessPool 
+### ProcessPool 
 `mpirun --mca mpi_cuda_support 0 -np <number of processes> ./processPool -s -n <number of points> -i <input file> -o <outfile>`
 
-###PartitionSpace
+### PartitionSpace
 `mpirun --mca mpi_cuda_support 0 -np <number of processes> ./partitionSpace -s -n <number of points> -i <input file> -o <outfile>`
 
-###ForkJoin 
+### ForkJoin 
 `mpirun --mca mpi_cuda_support 0 -np <number of processes> ./forkJoin -s -n <number of points> -i <input file> -o <outfile>`
