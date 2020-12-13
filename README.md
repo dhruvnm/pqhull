@@ -1,5 +1,5 @@
 # pqhull
-Parallel Quickhull
+To read about our analysis of the different implementations, click (here)[https://github.com/dhruvnm/pqhull/blob/main/A%20Consortium%20of%20Parallel%20QuickHull.pdf]
 
 
 ## Compile
